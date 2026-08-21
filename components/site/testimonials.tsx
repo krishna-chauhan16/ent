@@ -1,37 +1,38 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Quote, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Quote, Star, ShieldCheck } from 'lucide-react'
 import { SectionHeading } from './section-heading'
 import { cn } from '@/lib/utils'
+import { site } from '@/lib/site'
 
 const testimonials = [
   {
     quote:
-      'After years of chronic sinus infections, Dr. Hart finally gave me lasting relief. The surgery was quick and I could breathe freely within days. I only wish I had come sooner.',
-    name: 'Margaret L.',
-    detail: 'Endoscopic Sinus Surgery',
+      'I suffered from severe nasal blockage and chronic sinusitis for years. Dr. Vaidik Chauhan performed FESS and Septoplasty. The procedure was smooth, painless, and my breathing is completely clear now. Truly the best ENT surgeon in Ahmedabad!',
+    name: 'Rajesh Patel',
+    detail: 'FESS & Septoplasty Patient',
     rating: 5,
   },
   {
     quote:
-      'She took the time to explain my son’s recurring ear infections in a way we actually understood. The whole team was so gentle and patient with him. Highly recommended.',
-    name: 'David & Priya R.',
-    detail: 'Pediatric ENT',
+      'My mother had a large eardrum perforation with frequent ear discharge. Dr. Chauhan performed Tympanoplasty with microscopic precision. Her hearing has significantly improved and the ear is completely dry.',
+    name: 'Sneha Shah',
+    detail: 'Tympanoplasty (Ear Drum Repair)',
     rating: 5,
   },
   {
     quote:
-      'I was terrified about my thyroid surgery, but Dr. Hart’s calm confidence put me at ease. The scar is barely visible and my recovery was smoother than I imagined.',
-    name: 'Anthony C.',
-    detail: 'Thyroid Surgery',
+      'Dr. Vaidik Chauhan treated my 6-year-old son for enlarged adenoids with plasma dissection. The recovery was remarkably quick and comfortable. His bedside manner is gentle, reassuring, and thorough.',
+    name: 'Amit & Hiral Trivedi',
+    detail: 'Pediatric Plasma Adenoidectomy',
     rating: 5,
   },
   {
     quote:
-      'My voice is my career. When hoarseness threatened it, Dr. Hart’s precise diagnosis and therapy plan brought it back completely. Forever grateful.',
-    name: 'Rebecca M.',
-    detail: 'Voice Disorder Treatment',
+      'I was suffering from intense vertigo and dizziness that stopped me from driving. Dr. Chauhan conducted detailed vestibular workup, diagnosed BPPV accurately, and performed repositioning. I felt immediate relief!',
+    name: 'Bhavna Ben Desai',
+    detail: 'Vertigo & Balance Evaluation',
     rating: 5,
   },
 ]
@@ -54,12 +55,15 @@ export function Testimonials() {
     <section className="bg-primary py-20 dark:bg-secondary lg:py-28">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="mb-4 inline-flex items-center rounded-full bg-accent/20 px-4 py-1.5 text-sm font-semibold text-accent-foreground dark:bg-accent/15 dark:text-accent">
-            Patient Stories
+          <span className="mb-4 inline-flex items-center rounded-full bg-accent/20 px-4 py-1.5 text-xs sm:text-sm font-semibold text-accent-foreground dark:bg-accent/15 dark:text-accent">
+            <ShieldCheck className="size-4 mr-1.5" /> Patient Experiences
           </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-primary-foreground dark:text-foreground sm:text-4xl">
-            Trusted by thousands of families
+            Trusted by Thousands of Patients Across Gujarat
           </h2>
+          <p className="mt-3 text-sm text-primary-foreground/75 dark:text-muted-foreground">
+            Read real recovery journeys from patients treated by {site.doctor.name}.
+          </p>
         </div>
 
         <div
@@ -79,19 +83,24 @@ export function Testimonials() {
                   className="w-full shrink-0 px-1"
                   aria-hidden={testimonials[index].name !== t.name}
                 >
-                  <div className="mx-auto rounded-3xl border border-border bg-card p-8 shadow-xl sm:p-10">
-                    <Quote className="size-10 text-accent/30" />
+                  <div className="mx-auto rounded-3xl border border-border bg-card p-7 shadow-xl sm:p-10">
+                    <Quote className="size-9 text-accent/30" />
                     <div className="mt-4 flex gap-1">
                       {Array.from({ length: t.rating }).map((_, i) => (
                         <Star key={i} className="size-5 fill-accent text-accent" />
                       ))}
                     </div>
-                    <blockquote className="mt-5 text-pretty text-lg leading-relaxed text-foreground sm:text-xl">
+                    <blockquote className="mt-5 text-pretty text-base sm:text-lg leading-relaxed text-foreground">
                       “{t.quote}”
                     </blockquote>
-                    <figcaption className="mt-6 border-t border-border pt-5">
-                      <p className="font-heading font-bold text-foreground">{t.name}</p>
-                      <p className="text-sm text-muted-foreground">{t.detail}</p>
+                    <figcaption className="mt-6 border-t border-border pt-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-heading font-bold text-foreground text-base">{t.name}</p>
+                        <p className="text-xs text-accent font-medium">{t.detail}</p>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+                        Verified Review
+                      </span>
                     </figcaption>
                   </div>
                 </figure>

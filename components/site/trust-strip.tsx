@@ -1,20 +1,45 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Users, Scissors, CalendarClock, HeartPulse } from 'lucide-react'
+import { Scissors, CalendarClock, BookOpen, Award } from 'lucide-react'
 
 interface Stat {
-  icon: typeof Users
+  icon: typeof Scissors
   value: number
   suffix: string
   label: string
+  sublabel: string
 }
 
 const stats: Stat[] = [
-  { icon: Users, value: 15000, suffix: '+', label: 'Patients Treated' },
-  { icon: Scissors, value: 5000, suffix: '+', label: 'Surgeries Performed' },
-  { icon: CalendarClock, value: 20, suffix: '+', label: 'Years of Experience' },
-  { icon: HeartPulse, value: 98, suffix: '%', label: 'Patient Satisfaction' },
+  {
+    icon: Scissors,
+    value: 6000,
+    suffix: '+',
+    label: 'Successful Surgeries',
+    sublabel: 'Across Ear, Nose & Throat',
+  },
+  {
+    icon: CalendarClock,
+    value: 10,
+    suffix: '+',
+    label: 'Years Experience',
+    sublabel: 'Clinical & Surgical Excellence',
+  },
+  {
+    icon: BookOpen,
+    value: 14,
+    suffix: '+',
+    label: 'Research Publications',
+    sublabel: 'National & International Journals',
+  },
+  {
+    icon: Award,
+    value: 1200,
+    suffix: '+',
+    label: 'Tympanoplasty & Septoplasty',
+    sublabel: 'Micro-Ear & Endoscopic Sinus (FESS)',
+  },
 ]
 
 function useCountUp(target: number, active: boolean, duration = 1800) {
@@ -32,7 +57,6 @@ function useCountUp(target: number, active: boolean, duration = 1800) {
     function step(ts: number) {
       if (start === null) start = ts
       const progress = Math.min((ts - start) / duration, 1)
-      // easeOutExpo
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
       setValue(Math.round(eased * target))
       if (progress < 1) {
@@ -51,16 +75,19 @@ function useCountUp(target: number, active: boolean, duration = 1800) {
 function StatItem({ stat, active }: { stat: Stat; active: boolean }) {
   const value = useCountUp(stat.value, active)
   return (
-    <div className="flex flex-col items-center text-center">
-      <span className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+    <div className="flex flex-col items-center text-center p-2">
+      <span className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-sm">
         <stat.icon className="size-7" />
       </span>
-      <p className="font-heading text-4xl font-bold tracking-tight text-primary-foreground sm:text-5xl dark:text-foreground">
+      <p className="font-heading text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl dark:text-foreground">
         {value.toLocaleString()}
         {stat.suffix}
       </p>
-      <p className="mt-2 text-sm font-medium text-primary-foreground/70 dark:text-muted-foreground">
+      <p className="mt-2 text-base font-semibold text-primary-foreground/90 dark:text-foreground">
         {stat.label}
+      </p>
+      <p className="mt-0.5 text-xs text-primary-foreground/70 dark:text-muted-foreground">
+        {stat.sublabel}
       </p>
     </div>
   )
@@ -80,7 +107,7 @@ export function TrustStrip() {
           observer.disconnect()
         }
       },
-      { threshold: 0.3 },
+      { threshold: 0.2 },
     )
     observer.observe(node)
     return () => observer.disconnect()
@@ -88,11 +115,11 @@ export function TrustStrip() {
 
   return (
     <section
-      aria-label="Practice by the numbers"
-      className="border-y border-transparent bg-primary py-16 lg:py-20 dark:border-border dark:bg-secondary"
+      aria-label="Doctor track record numbers"
+      className="border-y border-transparent bg-primary py-14 lg:py-18 dark:border-border dark:bg-secondary"
     >
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-10 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
           {stats.map((stat) => (
             <StatItem key={stat.label} stat={stat} active={active} />
           ))}

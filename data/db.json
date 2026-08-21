@@ -1,0 +1,53 @@
+{
+  "visitors": {
+    "total": 1243,
+    "todayCount": 21,
+    "lastDate": "2026-08-21"
+  },
+  "appointments": [
+    {
+      "id": "apt-1787294438495-oe7k",
+      "name": "krishnachauhaan",
+      "phone": "9974399933",
+      "location": "Atulya Superspeciality Hospital (Bhuyangdev)",
+      "reason": "Ear Discharge / Hearing Loss / Eardrum Perforation (Tympanoplasty)",
+      "date": "2026-08-26",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-08-21T06:40:38.495Z"
+    },
+    {
+      "id": "apt-demo-1",
+      "name": "Ramesh Patel",
+      "phone": "+91 9876543210",
+      "location": "Atulya Superspeciality Hospital (Bhuyangdev)",
+      "reason": "Sinusitis / Polyp / Nasal Blockage (FESS / Septoplasty)",
+      "date": "2026-08-22",
+      "status": "confirmed",
+      "notes": "Complaining of chronic nasal blockage for 2 years.",
+      "createdAt": "2026-08-21T05:13:54.625Z"
+    },
+    {
+      "id": "apt-demo-2",
+      "name": "Pooja Shah",
+      "phone": "+91 9825012345",
+      "location": "KD Hospital (SG Highway)",
+      "reason": "Ear Discharge / Hearing Loss / Eardrum Perforation (Tympanoplasty)",
+      "date": "2026-08-23",
+      "status": "pending",
+      "notes": "Requesting evening consultation slot.",
+      "createdAt": "2026-08-21T04:13:54.625Z"
+    },
+    {
+      "id": "apt-demo-3",
+      "name": "Jignesh Trivedi",
+      "phone": "+91 9426098765",
+      "location": "Prathana Hospital",
+      "reason": "Vertigo, Dizziness & Balance Disorders",
+      "date": "2026-08-21",
+      "status": "pending",
+      "notes": "Acute dizziness episodes since 3 days.",
+      "createdAt": "2026-08-21T05:43:54.625Z"
+    }
+  ]
+}

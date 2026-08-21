@@ -5,31 +5,32 @@ import { Plus } from 'lucide-react'
 import { SectionHeading } from './section-heading'
 import { Reveal } from './reveal'
 import { cn } from '@/lib/utils'
+import { site } from '@/lib/site'
 
 const faqs = [
   {
-    q: 'Do I need a referral to book an appointment?',
-    a: 'No referral is required. You can request an appointment directly through our online form or by calling the clinic. If your insurance plan requires a referral for specialist visits, our team will help you coordinate one.',
+    q: 'Where does Dr. Vaidik Chauhan consult and operate?',
+    a: `Dr. Vaidik Chauhan is the Director & Head, Department of ENT at Atulya Superspeciality Hospital & ICU (2nd Floor, Elite Mangnum, Bhuyangdev Cross Rd, Ahmedabad). He also consults as Visiting Consultant ENT Surgeon at KD Hospital and Prathana Hospital in Ahmedabad.`,
   },
   {
-    q: 'What should I bring to my first visit?',
-    a: 'Please bring a photo ID, your insurance card, a list of current medications, and any prior imaging (CT scans, audiograms) or reports related to your ENT concern. Arriving 15 minutes early helps us complete your intake smoothly.',
+    q: 'How can I book an appointment with Dr. Vaidik Chauhan?',
+    a: `You can directly book an appointment by calling or sending a WhatsApp message to +91 9601074848, contacting Atulya Hospital at 09727579000, or filling out the appointment request form on this website.`,
   },
   {
-    q: 'Are ENT surgeries performed as day-care procedures?',
-    a: 'Many of our procedures — including sinus surgery, tonsillectomy, and ear tube placement — are performed as same-day day-care surgeries, allowing you to recover in the comfort of your own home. Your surgeon will advise what to expect for your specific case.',
+    q: 'What are the main surgical specialties of Dr. Vaidik Chauhan?',
+    a: 'Dr. Vaidik Chauhan has performed over 6,000 surgeries specializing in Septoplasty (1200+ cases), Endoscopic Sinus Surgery / FESS (1000+ cases), Tympanoplasty eardrum repair (1200+ cases), Mastoidectomy for CSOM (700+ cases), Tracheostomy airway rescue (300+ cases), and Plasma adenotonsillectomy.',
   },
   {
-    q: 'How long is the recovery after sinus surgery?',
-    a: 'Most patients return to light activity within 3–5 days and to full routine within 1–2 weeks. You will have a follow-up visit to monitor healing, and detailed aftercare instructions are provided before you leave.',
+    q: 'Are ENT surgeries like Septoplasty & Tympanoplasty done as day-care procedures?',
+    a: 'Yes, most endoscopic sinus surgeries, septoplasties, and micro-ear tympanoplasties are performed under high-definition visualization as same-day or minimal-stay procedures with rapid recovery and minimal post-operative discomfort.',
   },
   {
-    q: 'Do you treat children as well as adults?',
-    a: 'Yes. We provide dedicated pediatric ENT care in a child-friendly environment, treating ear infections, tonsil and adenoid issues, hearing concerns, and airway conditions for patients of all ages.',
+    q: 'What diagnostics are available at the clinic on the same day?',
+    a: 'We offer high-definition video nasal endoscopy, diagnostic oto-endoscopy, clinical vestibular & vertigo examination, and coordinate digital audiometry and CT imaging support in-house.',
   },
   {
-    q: 'Which insurance plans do you accept?',
-    a: 'We accept most major insurance providers and offer transparent self-pay options. Please contact our front desk with your plan details and we will verify your coverage and estimated costs before your visit.',
+    q: 'Does the hospital provide emergency ENT & airway trauma support?',
+    a: 'Yes. Atulya Superspeciality Hospital provides 24x7 multi-specialty ICU backup, emergency airway intervention, tracheostomy facilities, and foreign body extraction round the clock.',
   },
 ]
 
@@ -64,7 +65,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         )}
       >
         <div className="overflow-hidden">
-          <p className="px-6 pb-6 leading-relaxed text-muted-foreground">{a}</p>
+          <p className="px-6 pb-6 text-sm leading-relaxed text-muted-foreground">{a}</p>
         </div>
       </div>
     </div>
@@ -76,9 +77,9 @@ export function Faq() {
     <section className="bg-background py-20 lg:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          eyebrow="FAQ"
-          title="Answers to common questions"
-          description="Everything you need to know before your visit. Can’t find your answer? Give us a call."
+          eyebrow="Frequently Asked Questions"
+          title="Everything You Need to Know"
+          description="Common questions regarding consultations, procedures, hospital locations, and ENT care under Dr. Vaidik Chauhan."
         />
         <Reveal className="mt-12 flex flex-col gap-4">
           {faqs.map((f) => (

@@ -17,24 +17,25 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title:
-    "Dr.Vaidik Chauhan, MD — Expert Ear, Nose & Throat Care | Meridian ENT Institute",
+  title: "Dr. Vaidik Chauhan, MS (ENT) | Consultant ENT Surgeon & Director, Ahmedabad",
   description:
-    "Dr. Vaidik Chauhan is a board-certified ENT surgeon with 20+ years of experience treating sinus, hearing, voice, sleep, and head & neck conditions at the Meridian ENT & Head-Neck Institute. Book your consultation today.",
+    "Dr. Vaidik Chauhan, MS (ENT) - Director & Head, Department of ENT at Atulya Superspeciality Hospital & ICU, Ahmedabad. 10+ Years Experience, 6000+ Surgeries in Septoplasty, FESS, Tympanoplasty & Mastoidectomy.",
   keywords: [
-    "ENT surgeon",
-    "ear nose throat doctor",
-    "sinus surgery",
-    "hearing loss",
-    "sleep apnea",
-    "pediatric ENT",
-    "head and neck surgery",
+    "Dr Vaidik Chauhan ENT",
+    "ENT Surgeon Ahmedabad",
+    "Atulya Superspeciality Hospital ENT",
+    "Septoplasty Ahmedabad",
+    "FESS Sinus Surgery Ahmedabad",
+    "Tympanoplasty Surgeon Gujarat",
+    "Mastoidectomy Specialist",
+    "KD Hospital ENT Consultant",
+    "Prathana Hospital ENT Surgeon",
+    "Ear Nose Throat Specialist Ahmedabad",
   ],
-  generator: "v0.app",
   openGraph: {
-    title: "Dr. Vaidik Chauhan, MD — Expert Ear, Nose & Throat Care",
+    title: "Dr. Vaidik Chauhan, MS (ENT) — Consultant ENT Surgeon, Ahmedabad",
     description:
-      "Board-certified ENT surgeon with 20+ years of experience. Compassionate, advanced care for the whole family.",
+      "Director & Head, Dept of ENT at Atulya Superspeciality Hospital & ICU, Ahmedabad. Over 6000+ successful surgeries in Otology & Rhinology.",
     type: "website",
   },
 };

@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react'
 import { SectionHeading } from './section-heading'
 import { Reveal } from './reveal'
-import { cn } from '@/lib/utils'
 
 const images = [
   { src: '/gallery-reception.png', alt: 'Modern clinic reception and waiting area', tall: true },
@@ -19,6 +19,11 @@ const images = [
 export function Gallery() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const close = useCallback(() => setOpen(false), [])
   const next = useCallback(() => setActive((i) => (i + 1) % images.length), [])
@@ -44,6 +49,54 @@ export function Gallery() {
     setActive(i)
     setOpen(true)
   }
+
+  const lightbox = open && mounted ? (
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image viewer"
+    >
+      <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm" onClick={close} />
+      <button
+        type="button"
+        onClick={close}
+        aria-label="Close image viewer"
+        className="absolute right-4 top-4 z-20 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <X className="size-5" />
+      </button>
+      <button
+        type="button"
+        onClick={prev}
+        aria-label="Previous image"
+        className="absolute left-4 z-20 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:left-8"
+      >
+        <ChevronLeft className="size-6" />
+      </button>
+      <button
+        type="button"
+        onClick={next}
+        aria-label="Next image"
+        className="absolute right-4 z-20 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:right-8"
+      >
+        <ChevronRight className="size-6" />
+      </button>
+
+      <figure className="relative z-10 max-h-[85vh] w-full max-w-4xl">
+        <Image
+          src={images[active].src || '/placeholder.svg'}
+          alt={images[active].alt}
+          width={1280}
+          height={960}
+          className="mx-auto max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl"
+        />
+        <figcaption className="mt-4 text-center text-sm text-white/85">
+          {images[active].alt} &middot; {active + 1} / {images.length}
+        </figcaption>
+      </figure>
+    </div>
+  ) : null
 
   return (
     <section className="bg-background py-20 lg:py-28">
@@ -80,54 +133,8 @@ export function Gallery() {
         </Reveal>
       </div>
 
-      {/* Lightbox */}
-      {open && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image viewer"
-        >
-          <div className="absolute inset-0 bg-primary/90 backdrop-blur-sm" onClick={close} />
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close image viewer"
-            className="absolute right-4 top-4 z-10 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X className="size-5" />
-          </button>
-          <button
-            type="button"
-            onClick={prev}
-            aria-label="Previous image"
-            className="absolute left-4 z-10 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:left-8"
-          >
-            <ChevronLeft className="size-6" />
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            aria-label="Next image"
-            className="absolute right-4 z-10 inline-flex size-11 items-center justify-center rounded-full bg-card/90 text-foreground shadow-lg transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:right-8"
-          >
-            <ChevronRight className="size-6" />
-          </button>
-
-          <figure className="relative z-0 max-h-[85vh] w-full max-w-4xl">
-            <Image
-              src={images[active].src || '/placeholder.svg'}
-              alt={images[active].alt}
-              width={1280}
-              height={960}
-              className="mx-auto max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl"
-            />
-            <figcaption className="mt-4 text-center text-sm text-white/80">
-              {images[active].alt} &middot; {active + 1} / {images.length}
-            </figcaption>
-          </figure>
-        </div>
-      )}
+      {/* Lightbox Portal */}
+      {mounted && lightbox && createPortal(lightbox, document.body)}
     </section>
   )
 }
