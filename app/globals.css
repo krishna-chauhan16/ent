@@ -163,3 +163,16 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Hide Next.js dev activity indicator & toast badge */
+nextjs-portal,
+#__next-build-watcher,
+[data-nextjs-toast],
+[data-nextjs-route-announcer],
+[class*="nextjs-toast"],
+[id*="nextjs-toast"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

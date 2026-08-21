@@ -56,24 +56,24 @@ export function DoctorIntro() {
               </div>
 
               {/* Floating Experience Badge */}
-              <div className="absolute -right-3 -top-3 flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:-right-5">
-                <span className="inline-flex size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-md">
-                  <Award className="size-6" />
+              <div className="absolute -right-2 -top-2 sm:-right-5 sm:-top-3 flex items-center gap-2 sm:gap-3 rounded-2xl border border-border bg-card/95 p-2.5 sm:p-4 shadow-xl backdrop-blur">
+                <span className="inline-flex size-9 sm:size-12 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-md">
+                  <Award className="size-4 sm:size-6" />
                 </span>
                 <div>
-                  <p className="font-heading text-2xl font-bold leading-none text-foreground">10+</p>
-                  <p className="text-xs font-medium text-muted-foreground">Years Experience</p>
+                  <p className="font-heading text-lg sm:text-2xl font-bold leading-none text-foreground">10+</p>
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mt-0.5">Years Experience</p>
                 </div>
               </div>
 
               {/* Floating Surgeries Badge */}
-              <div className="absolute -bottom-4 -left-3 flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:-left-5">
-                <span className="inline-flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md dark:bg-accent dark:text-accent-foreground">
-                  <ShieldCheck className="size-6" />
+              <div className="absolute -bottom-3 -left-2 sm:-bottom-4 sm:-left-5 flex items-center gap-2 sm:gap-3 rounded-2xl border border-border bg-card/95 p-2.5 sm:p-4 shadow-xl backdrop-blur">
+                <span className="inline-flex size-9 sm:size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md dark:bg-accent dark:text-accent-foreground">
+                  <ShieldCheck className="size-4 sm:size-6" />
                 </span>
                 <div>
-                  <p className="font-heading text-2xl font-bold leading-none text-foreground">6,000+</p>
-                  <p className="text-xs font-medium text-muted-foreground">Successful ENT Surgeries</p>
+                  <p className="font-heading text-lg sm:text-2xl font-bold leading-none text-foreground">6,000+</p>
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mt-0.5">Successful Surgeries</p>
                 </div>
               </div>
             </div>

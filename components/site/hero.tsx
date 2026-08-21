@@ -15,7 +15,7 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="relative overflow-hidden bg-gradient-to-b from-secondary via-background to-background py-12 lg:py-20"
+      className="relative overflow-hidden bg-gradient-to-b from-secondary via-background to-background pt-10 pb-16 lg:py-20"
     >
       {/* Background glow accents */}
       <div

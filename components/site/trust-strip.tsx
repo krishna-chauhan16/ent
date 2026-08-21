@@ -75,18 +75,18 @@ function useCountUp(target: number, active: boolean, duration = 1800) {
 function StatItem({ stat, active }: { stat: Stat; active: boolean }) {
   const value = useCountUp(stat.value, active)
   return (
-    <div className="flex flex-col items-center text-center p-2">
-      <span className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-sm">
-        <stat.icon className="size-7" />
+    <div className="flex flex-col items-center text-center p-1 sm:p-2">
+      <span className="mb-3 sm:mb-4 inline-flex size-11 sm:size-14 items-center justify-center rounded-xl sm:rounded-2xl bg-accent/15 text-accent shadow-sm">
+        <stat.icon className="size-5 sm:size-7" />
       </span>
-      <p className="font-heading text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl dark:text-foreground">
+      <p className="font-heading text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-primary-foreground dark:text-foreground">
         {value.toLocaleString()}
         {stat.suffix}
       </p>
-      <p className="mt-2 text-base font-semibold text-primary-foreground/90 dark:text-foreground">
+      <p className="mt-1 sm:mt-2 text-xs sm:text-base font-semibold text-primary-foreground/90 dark:text-foreground">
         {stat.label}
       </p>
-      <p className="mt-0.5 text-xs text-primary-foreground/70 dark:text-muted-foreground">
+      <p className="mt-0.5 text-[10px] sm:text-xs text-primary-foreground/70 dark:text-muted-foreground">
         {stat.sublabel}
       </p>
     </div>
