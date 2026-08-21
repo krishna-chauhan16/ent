@@ -181,14 +181,18 @@ export function Navbar() {
           </a>
           <ThemeToggle className="hidden sm:inline-flex" />
           <BookAppointmentButton className="hidden h-10 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground shadow-sm transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex" />
+          <BookAppointmentButton
+            className="inline-flex sm:hidden h-9 items-center justify-center rounded-full bg-accent px-3.5 text-xs font-bold text-accent-foreground shadow-sm"
+            label="Book"
+          />
 
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
-            className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background text-foreground lg:hidden"
+            className="inline-flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-background text-foreground lg:hidden"
           >
-            <Menu className="size-5" />
+            <Menu className="size-4 sm:size-5" />
           </button>
         </div>
       </nav>
@@ -258,7 +262,10 @@ export function Navbar() {
               >
                 <Phone className="size-4 text-accent" /> {site.doctor.phoneDisplay}
               </a>
-              <BookAppointmentButton className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground" />
+              <BookAppointmentButton
+                onClick={() => setMobileOpen(false)}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground"
+              />
             </div>
           </div>
         </div>
