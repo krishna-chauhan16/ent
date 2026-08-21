@@ -103,14 +103,14 @@ export function Hero() {
               className="absolute -inset-3 rounded-[2.5rem] bg-gradient-to-tr from-accent/30 to-chart-3/20 blur-xl"
             />
 
-            <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-2xl aspect-[4/5] sm:aspect-[3/4]">
               <Image
-                src="/doctor-portrait.png"
-                alt={`Portrait of ${site.doctor.name}, ${site.doctor.title}`}
+                src="/doctor-portrait.jpg"
+                alt={`Portrait of ${site.doctor.name}, ${site.doctor.title} at Atulya Superspeciality Hospital`}
                 width={720}
-                height={860}
+                height={900}
                 priority
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover object-top"
               />
             </div>
 

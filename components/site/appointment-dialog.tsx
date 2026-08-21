@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import { CalendarCheck, CheckCircle2, Phone, X, MessageCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { site } from '@/lib/site'
 
@@ -35,6 +36,21 @@ export function BookAppointmentButton({
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [centers, setCenters] = useState<Array<{ id: string; name: string; area: string; timings?: string; isDefault?: boolean }>>([
+    { id: 'center-1', name: 'Atulya Superspeciality Hospital (Bhuyangdev)', area: 'Bhuyangdev Cross Road, Ahmedabad', isDefault: true },
+    { id: 'center-2', name: 'KD Hospital (SG Highway)', area: 'SG Highway, Ahmedabad' },
+    { id: 'center-3', name: 'Prathana Hospital', area: 'Memnagar, Ahmedabad' },
+  ])
+  const [concerns, setConcerns] = useState<Array<{ id: string; title: string; category: string; description?: string; isDefault?: boolean }>>([
+    { id: 'concern-1', title: 'Sinusitis, Nasal Polyps & Blockage (FESS / Septoplasty)', category: 'Nose & Sinus (Rhinology)', isDefault: true },
+    { id: 'concern-2', title: 'Ear Discharge, Hearing Loss & Eardrum Perforation (Tympanoplasty)', category: 'Ear & Hearing (Otology)' },
+    { id: 'concern-3', title: 'Vertigo, Dizziness & Balance Disorders', category: 'Vertigo & Balance' },
+    { id: 'concern-4', title: 'Throat, Tonsils, Adenoids & Voice Issues (Microlaryngeal Surgery)', category: 'Throat & Voice (Laryngology)' },
+    { id: 'concern-5', title: 'Pediatric ENT Checkup & Airway Obstruction', category: 'Pediatric ENT' },
+    { id: 'concern-6', title: 'Head & Neck Swellings, Thyroid & Skull Base Consultation', category: 'Head & Neck / Skull Base' },
+    { id: 'concern-7', title: 'Snoring & Obstructive Sleep Apnea (OSA)', category: 'Sleep & Airway' },
+    { id: 'concern-8', title: 'Second Surgical Opinion / General ENT Consultation', category: 'General ENT & Second Opinion' },
+  ])
   const [formData, setFormData] = useState<AppointmentFormState>({
     name: '',
     phone: '',
@@ -50,6 +66,29 @@ export function BookAppointmentButton({
 
   useEffect(() => {
     setMounted(true)
+    // 1. Fetch Active Hospital Centers
+    fetch('/api/centers')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.centers && data.centers.length > 0) {
+          setCenters(data.centers)
+          const def = data.centers.find((c: any) => c.isDefault) || data.centers[0]
+          if (def) {
+            setFormData((prev) => ({ ...prev, location: def.name }))
+          }
+        }
+      })
+      .catch(() => {})
+
+    // 2. Fetch Active ENT Concerns
+    fetch('/api/concerns')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.concerns && data.concerns.length > 0) {
+          setConcerns(data.concerns)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const close = useCallback(() => {
@@ -219,10 +258,15 @@ Please confirm my appointment slot.`
           </div>
         ) : (
           <>
-            <div className="mb-5 flex items-center gap-3 pr-8">
-              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                <CalendarCheck className="size-6" />
-              </span>
+            <div className="mb-5 flex items-center gap-3.5 pr-8">
+              <div className="relative size-12 shrink-0 rounded-2xl overflow-hidden border-2 border-accent shadow-md bg-card">
+                <Image
+                  src="/doctor-portrait.jpg"
+                  alt={`Dr. Vaidik Chauhan`}
+                  fill
+                  className="object-cover object-top"
+                />
+              </div>
               <div>
                 <h2 id={titleId} className="text-lg sm:text-xl font-bold text-foreground leading-tight">
                   Consult with {site.doctor.name}
@@ -270,9 +314,11 @@ Please confirm my appointment slot.`
                   value={formData.location}
                   onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                 >
-                  <option value="Atulya Superspeciality Hospital (Bhuyangdev)">Atulya Hospital (Bhuyangdev)</option>
-                  <option value="KD Hospital (SG Highway)">KD Hospital (SG Highway)</option>
-                  <option value="Prathana Hospital">Prathana Hospital</option>
+                  {centers.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </Field>
 
@@ -284,14 +330,12 @@ Please confirm my appointment slot.`
                   value={formData.reason}
                   onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
                 >
-                  <option value="">Select your ENT condition</option>
-                  <option value="Sinusitis / Polyp / Nasal Blockage (FESS / Septoplasty)">Sinusitis, Polyp or Nasal Blockage (FESS / Septoplasty)</option>
-                  <option value="Ear Discharge / Hearing Loss / Eardrum Perforation (Tympanoplasty)">Ear Discharge / Hearing Loss / Eardrum Perforation (Tympanoplasty)</option>
-                  <option value="Vertigo, Dizziness & Balance Disorders">Vertigo, Dizziness &amp; Balance Disorders</option>
-                  <option value="Throat, Tonsils, Adenoids or Voice Issues">Throat, Tonsils, Adenoids or Voice Issues</option>
-                  <option value="Pediatric ENT Checkup">Pediatric ENT Checkup</option>
-                  <option value="Head & Neck / Skull Base Consultation">Head &amp; Neck / Skull Base Consultation</option>
-                  <option value="Second Surgical Opinion / General ENT">Second Surgical Opinion / General ENT</option>
+                  <option value="">Select your ENT condition / symptom</option>
+                  {concerns.map((c) => (
+                    <option key={c.id} value={c.title}>
+                      {c.title}
+                    </option>
+                  ))}
                 </select>
               </Field>
 

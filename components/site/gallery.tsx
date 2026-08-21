@@ -8,12 +8,54 @@ import { SectionHeading } from './section-heading'
 import { Reveal } from './reveal'
 
 const images = [
-  { src: '/gallery-reception.png', alt: 'Modern clinic reception and waiting area', tall: true },
-  { src: '/gallery-consult.png', alt: 'Doctor explaining a diagnosis to a patient', tall: false },
-  { src: '/gallery-exam-room.png', alt: 'ENT examination room with modern equipment', tall: false },
-  { src: '/gallery-hearing.png', alt: 'Audiologist performing a hearing test', tall: true },
-  { src: '/gallery-surgery.png', alt: 'Surgical team in a modern operating theatre', tall: false },
-  { src: '/gallery-pediatric.png', alt: 'Doctor examining a child’s ear with a parent present', tall: false },
+  {
+    src: '/doctor-at-desk.jpg',
+    alt: 'Dr. Vaidik Chauhan, MS (ENT) at OPD Consultation Chamber',
+    tag: 'OPD Consultation Desk',
+    tall: false,
+  },
+  {
+    src: '/doctor-scrubs.jpg',
+    alt: 'Dr. Vaidik Chauhan, MS (ENT) in Surgical Operation Theatre Scrubs',
+    tag: 'Consultant ENT Surgeon',
+    tall: true,
+  },
+  {
+    src: '/hospital-reception-wide.jpg',
+    alt: 'Atulya Superspeciality Hospital Reception & Patient Lounge Area',
+    tag: 'Hospital Reception',
+    tall: false,
+  },
+  {
+    src: '/clinic-chamber.jpg',
+    alt: 'ENT OPD Examination & Diagnostic Consultation Suite',
+    tag: 'Consultation Chamber',
+    tall: true,
+  },
+  {
+    src: '/doctor-consulting.jpg',
+    alt: 'Dr. Vaidik Chauhan reviewing patient diagnostic records & scans',
+    tag: 'Digital Diagnosis',
+    tall: true,
+  },
+  {
+    src: '/hospital-facade.jpg',
+    alt: 'Atulya Superspeciality Hospital & ICU Building Facade, Ahmedabad',
+    tag: 'Hospital Building',
+    tall: false,
+  },
+  {
+    src: '/hospital-building.jpg',
+    alt: 'Elite Magnum Multi-Specialty Hospital Complex, Bhuyangdev',
+    tag: 'Hospital Complex',
+    tall: true,
+  },
+  {
+    src: '/doctor-portrait.jpg',
+    alt: 'Dr. Vaidik Chauhan, MS (ENT) — Director & Head, Dept. of ENT',
+    tag: 'Dr. Vaidik Chauhan',
+    tall: true,
+  },
 ]
 
 export function Gallery() {
@@ -124,6 +166,9 @@ export function Gallery() {
                   loading="lazy"
                   className="h-auto w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+                <span className="absolute bottom-3 left-3 z-10 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white transition-opacity duration-300">
+                  {img.tag}
+                </span>
                 <span className="absolute inset-0 flex items-center justify-center bg-primary/0 transition-colors duration-300 group-hover:bg-primary/30">
                   <ZoomIn className="size-8 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 </span>

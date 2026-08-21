@@ -45,13 +45,13 @@ export function DoctorIntro() {
           {/* Visual Column */}
           <Reveal className="relative order-2 lg:order-1">
             <div className="relative mx-auto max-w-md lg:max-w-none">
-              <div className="overflow-hidden rounded-3xl border border-border shadow-2xl bg-card">
+              <div className="overflow-hidden rounded-3xl border border-border shadow-2xl bg-card aspect-[4/5] sm:aspect-[4/3] lg:aspect-[4/3]">
                 <Image
-                  src="/doctor-intro.png"
-                  alt={`${site.doctor.name}, MS (ENT) conducting clinical examination`}
-                  width={680}
-                  height={760}
-                  className="h-full w-full object-cover"
+                  src="/doctor-at-desk.jpg"
+                  alt={`${site.doctor.name}, MS (ENT) — Director & Head at Atulya Superspeciality Hospital OPD`}
+                  width={960}
+                  height={720}
+                  className="h-full w-full object-cover object-center"
                 />
               </div>
 

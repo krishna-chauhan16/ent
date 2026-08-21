@@ -1,5 +1,4 @@
-'use client'
-
+import Image from 'next/image'
 import {
   Wind,
   Ear,
@@ -93,20 +92,30 @@ export function SurgicalMilestones() {
         {/* Surgical Total Card Banner */}
         <Reveal className="mt-12">
           <div className="relative overflow-hidden rounded-3xl border border-accent/30 bg-gradient-to-r from-primary via-primary/95 to-card p-6 sm:p-8 text-primary-foreground shadow-xl dark:border-border dark:bg-card">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4 text-center sm:text-left">
-                <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-lg">
-                  <ShieldCheck className="size-8" />
-                </span>
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+                <div className="relative size-20 sm:size-24 shrink-0 rounded-2xl overflow-hidden border-2 border-accent shadow-lg bg-card">
+                  <Image
+                    src="/doctor-scrubs.jpg"
+                    alt="Dr. Vaidik Chauhan in Surgical OT Scrubs"
+                    fill
+                    className="object-cover object-top"
+                  />
+                </div>
                 <div>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/20 px-3 py-0.5 text-xs font-bold text-accent mb-1.5">
+                    <ShieldCheck className="size-3.5" />
+                    <span>Lead ENT Consultant Surgeon</span>
+                  </div>
                   <h3 className="font-heading text-2xl sm:text-3xl font-extrabold text-white">
                     6,000+ Total ENT Cases Performed
                   </h3>
-                  <p className="mt-1 text-sm text-primary-foreground/80 dark:text-muted-foreground">
-                    10+ years of dedicated surgical precision across top hospitals in Ahmedabad.
+                  <p className="mt-1 text-xs sm:text-sm text-primary-foreground/80 dark:text-muted-foreground max-w-xl">
+                    10+ years of dedicated surgical precision across advanced modular operation theatres in Ahmedabad.
                   </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center backdrop-blur">
                   <span className="block font-heading text-2xl font-bold text-accent">100%</span>

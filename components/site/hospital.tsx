@@ -51,13 +51,14 @@ export function Hospital() {
         <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-2">
           <Reveal>
             <div className="overflow-hidden rounded-3xl border border-border shadow-xl h-full flex flex-col">
-              <Image
-                src="/hospital.png"
-                alt={`Exterior of ${site.hospital.name}`}
-                width={820}
-                height={620}
-                className="h-72 w-full object-cover sm:h-80 lg:h-80"
-              />
+              <div className="relative h-72 sm:h-80 lg:h-84 w-full overflow-hidden bg-muted">
+                <Image
+                  src="/hospital-facade.jpg"
+                  alt={`Building Facade of ${site.hospital.name}`}
+                  fill
+                  className="object-cover transition-transform duration-500 hover:scale-105"
+                />
+              </div>
               <div className="bg-card p-6 border-t border-border flex-1 flex flex-col justify-between">
                 <div>
                   <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
@@ -189,8 +190,94 @@ export function Hospital() {
           ))}
         </div>
 
+        {/* Real Hospital Campus Photos */}
+        <div className="mt-12">
+          <Reveal>
+            <div className="text-center mb-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-accent">Hospital Infrastructure Tour</span>
+              <h3 className="text-lg sm:text-xl font-bold font-heading text-foreground mt-1">
+                Inside Atulya Superspeciality Hospital &amp; ICU
+              </h3>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <Reveal delay={0}>
+              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-md group hover:border-accent/50 transition-all flex flex-col h-full">
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-muted">
+                  <Image
+                    src="/hospital-reception-wide.jpg"
+                    alt="Main Reception Desk & OPD Patient Waiting Lounge at Atulya Hospital"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-white">
+                    🛋️ Reception &amp; Lounge
+                  </span>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <h4 className="font-heading text-sm font-bold text-foreground">
+                    Reception &amp; Waiting Lounge
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Spacious reception desk with dedicated patient registration and comfortable seating area.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={100}>
+              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-md group hover:border-accent/50 transition-all flex flex-col h-full">
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-muted">
+                  <Image
+                    src="/clinic-chamber.jpg"
+                    alt="Doctor Consultation Chamber & Examination Room at Atulya Hospital"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-white">
+                    🩺 OPD Consultation Chamber
+                  </span>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <h4 className="font-heading text-sm font-bold text-foreground">
+                    ENT Examination Chamber
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Equipped with modern diagnostic endoscopy, examination bed, and anatomical modeling tools.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-md group hover:border-accent/50 transition-all flex flex-col h-full">
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-muted">
+                  <Image
+                    src="/hospital-building.jpg"
+                    alt="Atulya Superspeciality Hospital Complex building in Bhuyangdev, Ahmedabad"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <span className="absolute bottom-3 left-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-white">
+                    🏢 Hospital Complex
+                  </span>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <h4 className="font-heading text-sm font-bold text-foreground">
+                    Atulya Superspeciality Complex
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Multi-story hospital facility at Elite Magnum, Bhuyangdev Cross Road, Ahmedabad.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+
         {/* Google Map Location */}
-        <Reveal delay={80} className="mt-10">
+        <Reveal delay={80} className="mt-12">
           <div className="overflow-hidden rounded-3xl border border-border shadow-sm">
             <iframe
               title={`Map showing location of ${site.hospital.name}`}
