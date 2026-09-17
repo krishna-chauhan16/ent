@@ -1,93 +1,43 @@
-import fs from 'fs'
-import path from 'path'
+import crypto from 'crypto'
 import { supabaseAdmin, isSupabaseConfigured } from './supabase'
 import { getPostgresPool, ensurePostgresTables } from './postgres'
+import type { HospitalCenter, ENTConcern, Appointment, VisitorLog, DbSchema, AdminUser } from './types'
 
-export interface HospitalCenter {
-  id: string
-  name: string
-  area: string
-  timings: string
-  tag?: string
-  isActive: boolean
-  isDefault?: boolean
-  createdAt?: string
-}
-
-export interface ENTConcern {
-  id: string
-  title: string
-  category: string
-  description?: string
-  commonSymptoms?: string
-  isActive: boolean
-  isDefault?: boolean
-  sortOrder?: number
-  createdAt?: string
-}
-
-export interface Appointment {
-  id: string
-  name: string
-  phone: string
-  location: string
-  reason: string
-  date: string
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
-  notes?: string
-  createdAt: string
-}
-
-export interface DbSchema {
-  visitors: {
-    total: number
-    todayCount: number
-    lastDate: string
-  }
-  centers: HospitalCenter[]
-  concerns: ENTConcern[]
-  appointments: Appointment[]
-}
-
-const dataDir = path.join(process.cwd(), 'data')
-const dbFile = path.join(dataDir, 'db.json')
+export * from './types'
 
 const initialCenters: HospitalCenter[] = [
   {
-    id: 'center-1',
+    id: '1',
     name: 'Atulya Superspeciality Hospital (Bhuyangdev)',
     area: '2nd Floor, Elite Magnum, Bhuyangdev Cross Road, Sola Road, Ghatlodiya, Ahmedabad',
     timings: 'Mon - Sat: 10:00 AM - 01:00 PM & 05:00 PM - 08:00 PM',
-    tag: 'Primary Hospital (Director & Head)',
+    tag: 'Primary Center (Director & Head)',
     isActive: true,
     isDefault: true,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'center-2',
+    id: '2',
     name: 'KD Hospital (SG Highway)',
     area: 'Vaishnodevi Circle, SG Highway, Ahmedabad',
     timings: 'Visiting Consultant / By Appointment',
     tag: 'Visiting Consultant',
     isActive: true,
     isDefault: false,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'center-3',
+    id: '3',
     name: 'Prathana Hospital',
     area: 'Near Helmet Cross Roads, Memnagar, Ahmedabad',
     timings: 'Visiting Consultant / By Appointment',
     tag: 'Visiting Consultant',
     isActive: true,
     isDefault: false,
-    createdAt: new Date().toISOString(),
   },
 ]
 
 const initialConcerns: ENTConcern[] = [
   {
-    id: 'concern-1',
+    id: '1',
     title: 'Sinusitis, Nasal Polyps & Blockage (FESS / Septoplasty)',
     category: 'Nose & Sinus (Rhinology)',
     description: 'Deviated Nasal Septum (DNS), Functional Endoscopic Sinus Surgery (FESS), Turbinate Reduction, Polyp Clearance.',
@@ -95,10 +45,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: true,
     sortOrder: 1,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-2',
+    id: '2',
     title: 'Ear Discharge, Hearing Loss & Eardrum Perforation (Tympanoplasty)',
     category: 'Ear & Hearing (Otology)',
     description: 'CSOM, Cholesteatoma, Mastoidectomy, Stapedotomy, Micro-ear surgery, Eardrum Repair.',
@@ -106,10 +55,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 2,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-3',
+    id: '3',
     title: 'Vertigo, Dizziness & Balance Disorders',
     category: 'Vertigo & Balance',
     description: 'BPPV, Vestibular Neuritis, Meniere\'s Disease, Canalith Repositioning Maneuvers.',
@@ -117,10 +65,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 3,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-4',
+    id: '4',
     title: 'Throat, Tonsils, Adenoids & Voice Issues (Microlaryngeal Surgery)',
     category: 'Throat & Voice (Laryngology)',
     description: 'Recurrent Tonsillitis, Adenoid Hypertrophy, Vocal Cord Polyps, Hoarseness, Coblation Tonsillectomy.',
@@ -128,10 +75,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 4,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-5',
+    id: '5',
     title: 'Pediatric ENT Checkup & Airway Obstruction',
     category: 'Pediatric ENT',
     description: 'Childhood snoring, mouth breathing, recurrent ear infections, foreign body removal, tongue tie release.',
@@ -139,10 +85,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 5,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-6',
+    id: '6',
     title: 'Head & Neck Swellings, Thyroid & Skull Base Consultation',
     category: 'Head & Neck / Skull Base',
     description: 'Salivary Gland (Parotid/Submandibular) tumors, Thyroid nodules, CSF Rhinorrhea leak repair, Skull base lesions.',
@@ -150,10 +95,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 6,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-7',
+    id: '7',
     title: 'Snoring & Obstructive Sleep Apnea (OSA)',
     category: 'Sleep & Airway',
     description: 'Sleep endoscopy, palate & pharyngeal airway surgery, surgical management of obstructive sleep apnea.',
@@ -161,10 +105,9 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 7,
-    createdAt: new Date().toISOString(),
   },
   {
-    id: 'concern-8',
+    id: '8',
     title: 'Second Surgical Opinion / General ENT Consultation',
     category: 'General ENT & Second Opinion',
     description: 'Comprehensive ENT evaluation, review of previous CT/MRI scans, unbiased surgical opinion & guidance.',
@@ -172,101 +115,11 @@ const initialConcerns: ENTConcern[] = [
     isActive: true,
     isDefault: false,
     sortOrder: 8,
-    createdAt: new Date().toISOString(),
   },
 ]
 
-const initialData: DbSchema = {
-  visitors: {
-    total: 1240,
-    todayCount: 18,
-    lastDate: new Date().toISOString().split('T')[0],
-  },
-  centers: initialCenters,
-  concerns: initialConcerns,
-  appointments: [
-    {
-      id: 'apt-demo-1',
-      name: 'Ramesh Patel',
-      phone: '+91 9876543210',
-      location: 'Atulya Superspeciality Hospital (Bhuyangdev)',
-      reason: 'Sinusitis, Nasal Polyps & Blockage (FESS / Septoplasty)',
-      date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      status: 'confirmed',
-      notes: 'Complaining of chronic nasal blockage for 2 years.',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: 'apt-demo-2',
-      name: 'Pooja Shah',
-      phone: '+91 9825012345',
-      location: 'KD Hospital (SG Highway)',
-      reason: 'Ear Discharge, Hearing Loss & Eardrum Perforation (Tympanoplasty)',
-      date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
-      status: 'pending',
-      notes: 'Requesting evening consultation slot.',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: 'apt-demo-3',
-      name: 'Jignesh Trivedi',
-      phone: '+91 9426098765',
-      location: 'Prathana Hospital',
-      reason: 'Vertigo, Dizziness & Balance Disorders',
-      date: new Date().toISOString().split('T')[0],
-      status: 'pending',
-      notes: 'Acute dizziness episodes since 3 days.',
-      createdAt: new Date(Date.now() - 1800000).toISOString(),
-    },
-  ],
-}
-
 // ----------------------------------------------------
-// LOCAL FILE DB HELPERS (FALLBACK)
-// ----------------------------------------------------
-function ensureLocalDb(): DbSchema {
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-    if (!fs.existsSync(dbFile)) {
-      fs.writeFileSync(dbFile, JSON.stringify(initialData, null, 2), 'utf-8')
-      return initialData
-    }
-    const content = fs.readFileSync(dbFile, 'utf-8')
-    const parsed = JSON.parse(content) as DbSchema
-    let changed = false
-    if (!parsed.centers) {
-      parsed.centers = initialCenters
-      changed = true
-    }
-    if (!parsed.concerns || parsed.concerns.length === 0) {
-      parsed.concerns = initialConcerns
-      changed = true
-    }
-    if (changed) {
-      fs.writeFileSync(dbFile, JSON.stringify(parsed, null, 2), 'utf-8')
-    }
-    return parsed
-  } catch (error) {
-    console.error('Error accessing local database file, falling back to memory', error)
-    return initialData
-  }
-}
-
-function saveLocalDb(data: DbSchema) {
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-    fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), 'utf-8')
-  } catch (error) {
-    console.error('Error writing to local database file', error)
-  }
-}
-
-// ----------------------------------------------------
-// HOSPITAL CENTERS MASTER OPERATIONS
+// HOSPITAL CENTERS MASTER OPERATIONS (DIRECT DATABASE)
 // ----------------------------------------------------
 
 export async function getAllCenters(onlyActive = false): Promise<HospitalCenter[]> {
@@ -282,18 +135,18 @@ export async function getAllCenters(onlyActive = false): Promise<HospitalCenter[
       const res = await pool.query(query)
       if (res.rows.length > 0) {
         return res.rows.map((r) => ({
-          id: r.id,
+          id: String(r.id),
           name: r.name,
           area: r.area,
           timings: r.timings || '',
           tag: r.tag || '',
-          isActive: r.is_active,
-          isDefault: r.is_default,
-          createdAt: r.created_at,
+          isActive: Boolean(r.is_active),
+          isDefault: Boolean(r.is_default),
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
         }))
       }
     } catch (err) {
-      console.error('PostgreSQL getAllCenters error, using fallback', err)
+      console.error('PostgreSQL getAllCenters error:', err)
     }
   }
 
@@ -307,25 +160,22 @@ export async function getAllCenters(onlyActive = false): Promise<HospitalCenter[
       const { data, error } = await query
       if (!error && data && data.length > 0) {
         return data.map((r: any) => ({
-          id: r.id,
+          id: String(r.id),
           name: r.name,
           area: r.area,
           timings: r.timings || '',
           tag: r.tag || '',
-          isActive: r.is_active,
-          isDefault: r.is_default,
+          isActive: Boolean(r.is_active),
+          isDefault: Boolean(r.is_default),
           createdAt: r.created_at,
         }))
       }
     } catch (err) {
-      console.error('Supabase getAllCenters error, using fallback', err)
+      console.error('Supabase getAllCenters error:', err)
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  const list = db.centers || initialCenters
-  return onlyActive ? list.filter((c) => c.isActive) : list
+  return onlyActive ? initialCenters.filter((c) => c.isActive) : initialCenters
 }
 
 export async function addCenter(data: {
@@ -352,11 +202,10 @@ export async function addCenter(data: {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      await pool.query(
-        `INSERT INTO public.hospital_centers (id, name, area, timings, tag, is_active, is_default, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      const res = await pool.query(
+        `INSERT INTO public.hospital_centers (name, area, timings, tag, is_active, is_default, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
         [
-          newCenter.id,
           newCenter.name,
           newCenter.area,
           newCenter.timings,
@@ -366,18 +215,21 @@ export async function addCenter(data: {
           newCenter.createdAt,
         ],
       )
+      if (res.rows.length > 0 && res.rows[0].id) {
+        newCenter.id = String(res.rows[0].id)
+      }
       return newCenter
     } catch (err) {
-      console.error('PostgreSQL addCenter error', err)
+      console.error('PostgreSQL addCenter error:', err)
+      throw new Error('Failed to insert hospital center into PostgreSQL database.')
     }
   }
 
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      await supabaseAdmin.from('hospital_centers').insert([
+      const { data: inserted, error } = await supabaseAdmin.from('hospital_centers').insert([
         {
-          id: newCenter.id,
           name: newCenter.name,
           area: newCenter.area,
           timings: newCenter.timings,
@@ -386,19 +238,20 @@ export async function addCenter(data: {
           is_default: newCenter.isDefault,
           created_at: newCenter.createdAt,
         },
-      ])
-      return newCenter
+      ]).select().single()
+
+      if (!error && inserted?.id) {
+        newCenter.id = String(inserted.id)
+        return newCenter
+      }
+      throw error
     } catch (err) {
-      console.error('Supabase addCenter error', err)
+      console.error('Supabase addCenter error:', err)
+      throw new Error('Failed to insert hospital center into Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.centers) db.centers = initialCenters
-  db.centers.push(newCenter)
-  saveLocalDb(db)
-  return newCenter
+  throw new Error('Database is not connected. Please verify PostgreSQL connection in .env.local.')
 }
 
 export async function updateCenter(
@@ -441,7 +294,7 @@ export async function updateCenter(
       }
 
       if (fields.length > 0) {
-        values.push(id)
+        values.push(!isNaN(Number(id)) ? Number(id) : id)
         const res = await pool.query(
           `UPDATE public.hospital_centers SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
           values,
@@ -449,19 +302,20 @@ export async function updateCenter(
         if (res.rows.length > 0) {
           const r = res.rows[0]
           return {
-            id: r.id,
+            id: String(r.id),
             name: r.name,
             area: r.area,
             timings: r.timings || '',
             tag: r.tag || '',
-            isActive: r.is_active,
-            isDefault: r.is_default,
-            createdAt: r.created_at,
+            isActive: Boolean(r.is_active),
+            isDefault: Boolean(r.is_default),
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
           }
         }
       }
     } catch (err) {
-      console.error('PostgreSQL updateCenter error', err)
+      console.error('PostgreSQL updateCenter error:', err)
+      throw new Error('Failed to update hospital center in PostgreSQL database.')
     }
   }
 
@@ -485,33 +339,23 @@ export async function updateCenter(
 
       if (!error && data) {
         return {
-          id: data.id,
+          id: String(data.id),
           name: data.name,
           area: data.area,
           timings: data.timings || '',
           tag: data.tag || '',
-          isActive: data.is_active,
-          isDefault: data.is_default,
+          isActive: Boolean(data.is_active),
+          isDefault: Boolean(data.is_default),
           createdAt: data.created_at,
         }
       }
     } catch (err) {
-      console.error('Supabase updateCenter error', err)
+      console.error('Supabase updateCenter error:', err)
+      throw new Error('Failed to update hospital center in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.centers) db.centers = initialCenters
-  const index = db.centers.findIndex((c) => c.id === id)
-  if (index === -1) return null
-
-  db.centers[index] = {
-    ...db.centers[index],
-    ...updates,
-  }
-  saveLocalDb(db)
-  return db.centers[index]
+  return null
 }
 
 export async function deleteCenter(id: string): Promise<boolean> {
@@ -521,10 +365,12 @@ export async function deleteCenter(id: string): Promise<boolean> {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      const res = await pool.query('DELETE FROM public.hospital_centers WHERE id = $1', [id])
+      const targetId = !isNaN(Number(id)) ? Number(id) : id
+      const res = await pool.query('DELETE FROM public.hospital_centers WHERE id = $1', [targetId])
       if ((res.rowCount || 0) > 0) return true
     } catch (err) {
-      console.error('PostgreSQL deleteCenter error', err)
+      console.error('PostgreSQL deleteCenter error:', err)
+      throw new Error('Failed to delete hospital center in PostgreSQL database.')
     }
   }
 
@@ -534,24 +380,16 @@ export async function deleteCenter(id: string): Promise<boolean> {
       const { error } = await supabaseAdmin.from('hospital_centers').delete().eq('id', id)
       if (!error) return true
     } catch (err) {
-      console.error('Supabase deleteCenter error', err)
+      console.error('Supabase deleteCenter error:', err)
+      throw new Error('Failed to delete hospital center in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.centers) db.centers = initialCenters
-  const beforeLength = db.centers.length
-  db.centers = db.centers.filter((c) => c.id !== id)
-  if (db.centers.length !== beforeLength) {
-    saveLocalDb(db)
-    return true
-  }
   return false
 }
 
 // ----------------------------------------------------
-// ENT CONCERNS MASTER OPERATIONS
+// ENT CONCERNS MASTER OPERATIONS (DIRECT DATABASE)
 // ----------------------------------------------------
 
 export async function getAllConcerns(onlyActive = false): Promise<ENTConcern[]> {
@@ -567,19 +405,19 @@ export async function getAllConcerns(onlyActive = false): Promise<ENTConcern[]> 
       const res = await pool.query(query)
       if (res.rows.length > 0) {
         return res.rows.map((r) => ({
-          id: r.id,
+          id: String(r.id),
           title: r.title,
           category: r.category,
           description: r.description || '',
           commonSymptoms: r.common_symptoms || '',
-          isActive: r.is_active,
-          isDefault: r.is_default,
+          isActive: Boolean(r.is_active),
+          isDefault: Boolean(r.is_default),
           sortOrder: r.sort_order || 0,
-          createdAt: r.created_at,
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
         }))
       }
     } catch (err) {
-      console.error('PostgreSQL getAllConcerns error, using fallback', err)
+      console.error('PostgreSQL getAllConcerns error:', err)
     }
   }
 
@@ -597,26 +435,23 @@ export async function getAllConcerns(onlyActive = false): Promise<ENTConcern[]> 
       const { data, error } = await query
       if (!error && data && data.length > 0) {
         return data.map((r: any) => ({
-          id: r.id,
+          id: String(r.id),
           title: r.title,
           category: r.category,
           description: r.description || '',
           commonSymptoms: r.common_symptoms || '',
-          isActive: r.is_active,
-          isDefault: r.is_default,
+          isActive: Boolean(r.is_active),
+          isDefault: Boolean(r.is_default),
           sortOrder: r.sort_order || 0,
           createdAt: r.created_at,
         }))
       }
     } catch (err) {
-      console.error('Supabase getAllConcerns error, using fallback', err)
+      console.error('Supabase getAllConcerns error:', err)
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  const list = db.concerns || initialConcerns
-  return onlyActive ? list.filter((c) => c.isActive) : list
+  return onlyActive ? initialConcerns.filter((c) => c.isActive) : initialConcerns
 }
 
 export async function addConcern(data: {
@@ -646,11 +481,10 @@ export async function addConcern(data: {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      await pool.query(
-        `INSERT INTO public.ent_concerns (id, title, category, description, common_symptoms, is_active, is_default, sort_order, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      const res = await pool.query(
+        `INSERT INTO public.ent_concerns (title, category, description, common_symptoms, is_active, is_default, sort_order, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
         [
-          newConcern.id,
           newConcern.title,
           newConcern.category,
           newConcern.description,
@@ -661,18 +495,21 @@ export async function addConcern(data: {
           newConcern.createdAt,
         ],
       )
+      if (res.rows.length > 0 && res.rows[0].id) {
+        newConcern.id = String(res.rows[0].id)
+      }
       return newConcern
     } catch (err) {
-      console.error('PostgreSQL addConcern error', err)
+      console.error('PostgreSQL addConcern error:', err)
+      throw new Error('Failed to insert ENT concern into PostgreSQL database.')
     }
   }
 
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      await supabaseAdmin.from('ent_concerns').insert([
+      const { data: inserted, error } = await supabaseAdmin.from('ent_concerns').insert([
         {
-          id: newConcern.id,
           title: newConcern.title,
           category: newConcern.category,
           description: newConcern.description,
@@ -682,19 +519,20 @@ export async function addConcern(data: {
           sort_order: newConcern.sortOrder,
           created_at: newConcern.createdAt,
         },
-      ])
-      return newConcern
+      ]).select().single()
+
+      if (!error && inserted?.id) {
+        newConcern.id = String(inserted.id)
+        return newConcern
+      }
+      throw error
     } catch (err) {
-      console.error('Supabase addConcern error', err)
+      console.error('Supabase addConcern error:', err)
+      throw new Error('Failed to insert ENT concern into Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.concerns) db.concerns = initialConcerns
-  db.concerns.push(newConcern)
-  saveLocalDb(db)
-  return newConcern
+  throw new Error('Database is not connected. Please verify PostgreSQL connection in .env.local.')
 }
 
 export async function updateConcern(
@@ -741,7 +579,7 @@ export async function updateConcern(
       }
 
       if (fields.length > 0) {
-        values.push(id)
+        values.push(!isNaN(Number(id)) ? Number(id) : id)
         const res = await pool.query(
           `UPDATE public.ent_concerns SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
           values,
@@ -749,20 +587,21 @@ export async function updateConcern(
         if (res.rows.length > 0) {
           const r = res.rows[0]
           return {
-            id: r.id,
+            id: String(r.id),
             title: r.title,
             category: r.category,
             description: r.description || '',
             commonSymptoms: r.common_symptoms || '',
-            isActive: r.is_active,
-            isDefault: r.is_default,
+            isActive: Boolean(r.is_active),
+            isDefault: Boolean(r.is_default),
             sortOrder: r.sort_order || 0,
-            createdAt: r.created_at,
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : undefined,
           }
         }
       }
     } catch (err) {
-      console.error('PostgreSQL updateConcern error', err)
+      console.error('PostgreSQL updateConcern error:', err)
+      throw new Error('Failed to update ENT concern in PostgreSQL database.')
     }
   }
 
@@ -787,34 +626,24 @@ export async function updateConcern(
 
       if (!error && data) {
         return {
-          id: data.id,
+          id: String(data.id),
           title: data.title,
           category: data.category,
           description: data.description || '',
           commonSymptoms: data.common_symptoms || '',
-          isActive: data.is_active,
-          isDefault: data.is_default,
+          isActive: Boolean(data.is_active),
+          isDefault: Boolean(data.is_default),
           sortOrder: data.sort_order || 0,
           createdAt: data.created_at,
         }
       }
     } catch (err) {
-      console.error('Supabase updateConcern error', err)
+      console.error('Supabase updateConcern error:', err)
+      throw new Error('Failed to update ENT concern in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.concerns) db.concerns = initialConcerns
-  const index = db.concerns.findIndex((c) => c.id === id)
-  if (index === -1) return null
-
-  db.concerns[index] = {
-    ...db.concerns[index],
-    ...updates,
-  }
-  saveLocalDb(db)
-  return db.concerns[index]
+  return null
 }
 
 export async function deleteConcern(id: string): Promise<boolean> {
@@ -824,10 +653,12 @@ export async function deleteConcern(id: string): Promise<boolean> {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      const res = await pool.query('DELETE FROM public.ent_concerns WHERE id = $1', [id])
+      const targetId = !isNaN(Number(id)) ? Number(id) : id
+      const res = await pool.query('DELETE FROM public.ent_concerns WHERE id = $1', [targetId])
       if ((res.rowCount || 0) > 0) return true
     } catch (err) {
-      console.error('PostgreSQL deleteConcern error', err)
+      console.error('PostgreSQL deleteConcern error:', err)
+      throw new Error('Failed to delete ENT concern in PostgreSQL database.')
     }
   }
 
@@ -837,36 +668,62 @@ export async function deleteConcern(id: string): Promise<boolean> {
       const { error } = await supabaseAdmin.from('ent_concerns').delete().eq('id', id)
       if (!error) return true
     } catch (err) {
-      console.error('Supabase deleteConcern error', err)
+      console.error('Supabase deleteConcern error:', err)
+      throw new Error('Failed to delete ENT concern in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (!db.concerns) db.concerns = initialConcerns
-  const beforeLength = db.concerns.length
-  db.concerns = db.concerns.filter((c) => c.id !== id)
-  if (db.concerns.length !== beforeLength) {
-    saveLocalDb(db)
-    return true
-  }
   return false
 }
 
 // ----------------------------------------------------
-// HYBRID DATABASE OPERATIONS (POSTGRES / SUPABASE / LOCAL)
+// VISITOR & STATS OPERATIONS (DIRECT DATABASE)
 // ----------------------------------------------------
 
-export async function recordVisitor(): Promise<{ total: number; todayCount: number }> {
+export async function recordVisitor(details?: {
+  ip?: string
+  userAgent?: string
+  path?: string
+}): Promise<{ total: number; todayCount: number; entry?: VisitorLog }> {
   const today = new Date().toISOString().split('T')[0]
+  const nowIso = new Date().toISOString()
+  const ip = details?.ip?.trim() || '127.0.0.1'
+  const userAgent = details?.userAgent?.trim() || ''
+  const pagePath = details?.path?.trim() || '/'
+
+  const logEntry: VisitorLog = {
+    id: 1,
+    ip,
+    userAgent,
+    path: pagePath,
+    visitedAt: nowIso,
+    date: today,
+  }
+
   const pool = getPostgresPool()
 
   // 1. Direct PostgreSQL (pgAdmin / localhost)
   if (pool) {
     try {
       await ensurePostgresTables(pool)
+
+      // Insert visitor log entry
+      try {
+        const logRes = await pool.query(
+          `INSERT INTO public.visitor_logs (ip, user_agent, path, visited_at, created_at)
+           VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+          [logEntry.ip, logEntry.userAgent, logEntry.path, logEntry.visitedAt, logEntry.visitedAt],
+        )
+
+        if (logRes.rows.length > 0 && logRes.rows[0].id) {
+          logEntry.id = Number(logRes.rows[0].id)
+        }
+      } catch (logErr) {
+        console.error('PostgreSQL visitor_logs insert error:', logErr)
+      }
+
       const res = await pool.query('SELECT * FROM public.visitors WHERE id = 1 LIMIT 1')
-      let total = 1241
+      let total = 1
       let todayCount = 1
 
       if (res.rows.length > 0) {
@@ -888,27 +745,47 @@ export async function recordVisitor(): Promise<{ total: number; todayCount: numb
         )
       }
 
-      return { total, todayCount }
+      return { total, todayCount, entry: logEntry }
     } catch (err) {
-      console.error('PostgreSQL visitor record error', err)
+      console.error('PostgreSQL visitor record error:', err)
     }
   }
 
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
+      const { data: insertedLog } = await supabaseAdmin
+        .from('visitor_logs')
+        .insert([
+          {
+            ip: logEntry.ip,
+            user_agent: logEntry.userAgent,
+            path: logEntry.path,
+            visited_at: logEntry.visitedAt,
+          },
+        ])
+        .select('id')
+        .single()
+
+      if (insertedLog?.id) {
+        logEntry.id = Number(insertedLog.id)
+      }
+
       const { data, error } = await supabaseAdmin
         .from('visitors')
         .select('*')
         .eq('id', 1)
         .single()
 
+      let newToday = 1
+      let newTotal = 1
+
       if (!error && data) {
-        let newToday = (data.today_count || 0) + 1
+        newToday = (data.today_count || 0) + 1
         if (data.last_date !== today) {
           newToday = 1
         }
-        const newTotal = (data.total || 0) + 1
+        newTotal = (data.total || 0) + 1
 
         await supabaseAdmin
           .from('visitors')
@@ -919,29 +796,70 @@ export async function recordVisitor(): Promise<{ total: number; todayCount: numb
             updated_at: new Date().toISOString(),
           })
           .eq('id', 1)
-
-        return { total: newTotal, todayCount: newToday }
+      } else {
+        await supabaseAdmin.from('visitors').insert([
+          {
+            id: 1,
+            total: 1,
+            today_count: 1,
+            last_date: today,
+            updated_at: new Date().toISOString(),
+          },
+        ])
       }
+
+      return { total: newTotal, todayCount: newToday, entry: logEntry }
     } catch (err) {
-      console.error('Supabase visitor record error', err)
+      console.error('Supabase visitor record error:', err)
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (db.visitors.lastDate !== today) {
-    db.visitors.todayCount = 1
-    db.visitors.lastDate = today
-  } else {
-    db.visitors.todayCount += 1
-  }
-  db.visitors.total += 1
-  saveLocalDb(db)
+  return { total: 0, todayCount: 0, entry: logEntry }
+}
 
-  return {
-    total: db.visitors.total,
-    todayCount: db.visitors.todayCount,
+export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
+  const pool = getPostgresPool()
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const res = await pool.query('SELECT * FROM public.visitor_logs ORDER BY visited_at DESC LIMIT $1', [limit])
+      return res.rows.map((r) => ({
+        id: Number(r.id),
+        ip: r.ip,
+        userAgent: r.user_agent || '',
+        path: r.path || '/',
+        visitedAt: r.visited_at ? new Date(r.visited_at).toISOString() : new Date().toISOString(),
+        date: r.visited_at ? new Date(r.visited_at).toISOString().split('T')[0] : '',
+      }))
+    } catch (err) {
+      console.error('PostgreSQL getRecentVisitorLogs error:', err)
+    }
   }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data } = await supabaseAdmin
+        .from('visitor_logs')
+        .select('*')
+        .order('visited_at', { ascending: false })
+        .limit(limit)
+
+      if (data) {
+        return data.map((r: any) => ({
+          id: Number(r.id),
+          ip: r.ip,
+          userAgent: r.user_agent || '',
+          path: r.path || '/',
+          visitedAt: r.visited_at,
+          date: r.visited_at?.split('T')[0] || '',
+        }))
+      }
+    } catch (err) {
+      console.error('Supabase getRecentVisitorLogs error:', err)
+    }
+  }
+
+  return []
 }
 
 export async function getStats() {
@@ -961,7 +879,7 @@ export async function getStats() {
       const visitorRow = visitorRes.rows[0]
       const apts = aptsRes.rows
 
-      const visitorsTotal = visitorRow?.total || 1240
+      const visitorsTotal = visitorRow?.total || 0
       const visitorLastDate = visitorRow?.last_date
         ? new Date(visitorRow.last_date).toISOString().split('T')[0]
         : ''
@@ -988,7 +906,7 @@ export async function getStats() {
         databaseSource: 'PostgreSQL (pgAdmin)',
       }
     } catch (err) {
-      console.error('PostgreSQL getStats error', err)
+      console.error('PostgreSQL getStats error:', err)
     }
   }
 
@@ -1005,7 +923,7 @@ export async function getStats() {
       const apts = (aptsRes.data || []) as any[]
       const centers = (centersRes.data || []) as any[]
 
-      const visitorsTotal = visitorData?.total || 1240
+      const visitorsTotal = visitorData?.total || 0
       const visitorsToday =
         visitorData?.last_date === today ? visitorData?.today_count || 0 : 0
 
@@ -1028,37 +946,25 @@ export async function getStats() {
         databaseSource: 'Supabase Cloud PostgreSQL',
       }
     } catch (err) {
-      console.error('Supabase getStats error', err)
+      console.error('Supabase getStats error:', err)
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  if (db.visitors.lastDate !== today) {
-    db.visitors.todayCount = 0
-    db.visitors.lastDate = today
-    saveLocalDb(db)
-  }
-
-  const totalAppointments = db.appointments.length
-  const pendingAppointments = db.appointments.filter((a) => a.status === 'pending').length
-  const confirmedAppointments = db.appointments.filter((a) => a.status === 'confirmed').length
-  const todayAppointments = db.appointments.filter(
-    (a) => a.date === today || a.createdAt.startsWith(today),
-  ).length
-  const totalActiveCenters = (db.centers || initialCenters).filter((c) => c.isActive).length
-
   return {
-    visitorsTotal: db.visitors.total,
-    visitorsToday: db.visitors.todayCount,
-    totalAppointments,
-    pendingAppointments,
-    confirmedAppointments,
-    todayAppointments,
-    totalActiveCenters,
-    databaseSource: 'Local Storage',
+    visitorsTotal: 0,
+    visitorsToday: 0,
+    totalAppointments: 0,
+    pendingAppointments: 0,
+    confirmedAppointments: 0,
+    todayAppointments: 0,
+    totalActiveCenters: 3,
+    databaseSource: 'Database Not Connected',
   }
 }
+
+// ----------------------------------------------------
+// APPOINTMENTS OPERATIONS (DIRECT DATABASE)
+// ----------------------------------------------------
 
 export async function getAllAppointments(): Promise<Appointment[]> {
   const pool = getPostgresPool()
@@ -1071,7 +977,7 @@ export async function getAllAppointments(): Promise<Appointment[]> {
         'SELECT * FROM public.appointments ORDER BY created_at DESC',
       )
       return res.rows.map((row) => ({
-        id: row.id,
+        id: String(row.id),
         name: row.name,
         phone: row.phone,
         location: row.location,
@@ -1082,7 +988,8 @@ export async function getAllAppointments(): Promise<Appointment[]> {
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
       }))
     } catch (err) {
-      console.error('PostgreSQL getAllAppointments error', err)
+      console.error('PostgreSQL getAllAppointments error:', err)
+      return []
     }
   }
 
@@ -1096,7 +1003,7 @@ export async function getAllAppointments(): Promise<Appointment[]> {
 
       if (!error && data) {
         return data.map((item: any) => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name,
           phone: item.phone,
           location: item.location,
@@ -1108,15 +1015,11 @@ export async function getAllAppointments(): Promise<Appointment[]> {
         }))
       }
     } catch (err) {
-      console.error('Supabase getAllAppointments error', err)
+      console.error('Supabase getAllAppointments error:', err)
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  return db.appointments.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
+  return []
 }
 
 export async function addAppointment(data: {
@@ -1128,7 +1031,7 @@ export async function addAppointment(data: {
   notes?: string
 }): Promise<Appointment> {
   const newAppointment: Appointment = {
-    id: `apt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    id: `apt-${Date.now()}`,
     name: data.name.trim(),
     phone: data.phone.trim(),
     location: data.location || 'Atulya Superspeciality Hospital (Bhuyangdev)',
@@ -1145,11 +1048,10 @@ export async function addAppointment(data: {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      await pool.query(
-        `INSERT INTO public.appointments (id, name, phone, location, reason, date, status, notes, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      const res = await pool.query(
+        `INSERT INTO public.appointments (name, phone, location, reason, date, status, notes, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
         [
-          newAppointment.id,
           newAppointment.name,
           newAppointment.phone,
           newAppointment.location,
@@ -1160,18 +1062,21 @@ export async function addAppointment(data: {
           newAppointment.createdAt,
         ],
       )
+      if (res.rows.length > 0 && res.rows[0].id) {
+        newAppointment.id = String(res.rows[0].id)
+      }
       return newAppointment
     } catch (err) {
-      console.error('PostgreSQL insert appointment error', err)
+      console.error('PostgreSQL insert appointment error:', err)
+      throw new Error('Failed to insert appointment into PostgreSQL database.')
     }
   }
 
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      const { error } = await supabaseAdmin.from('appointments').insert([
+      const { data: inserted, error } = await supabaseAdmin.from('appointments').insert([
         {
-          id: newAppointment.id,
           name: newAppointment.name,
           phone: newAppointment.phone,
           location: newAppointment.location,
@@ -1181,22 +1086,21 @@ export async function addAppointment(data: {
           notes: newAppointment.notes,
           created_at: newAppointment.createdAt,
         },
-      ])
+      ]).select().single()
 
-      if (!error) {
+      if (!error && inserted?.id) {
+        newAppointment.id = String(inserted.id)
         return newAppointment
       }
-      console.error('Supabase insert error', error)
+      console.error('Supabase insert error:', error)
+      throw error
     } catch (err) {
-      console.error('Supabase addAppointment error, saving to local DB', err)
+      console.error('Supabase addAppointment error:', err)
+      throw new Error('Failed to insert appointment into Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  db.appointments.unshift(newAppointment)
-  saveLocalDb(db)
-  return newAppointment
+  throw new Error('Database is not connected. Please check PostgreSQL connection in .env.local.')
 }
 
 export async function updateAppointment(
@@ -1231,7 +1135,7 @@ export async function updateAppointment(
       }
 
       if (fields.length > 0) {
-        values.push(id)
+        values.push(!isNaN(Number(id)) ? Number(id) : id)
         const res = await pool.query(
           `UPDATE public.appointments SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
           values,
@@ -1239,7 +1143,7 @@ export async function updateAppointment(
         if (res.rows.length > 0) {
           const row = res.rows[0]
           return {
-            id: row.id,
+            id: String(row.id),
             name: row.name,
             phone: row.phone,
             location: row.location,
@@ -1252,7 +1156,8 @@ export async function updateAppointment(
         }
       }
     } catch (err) {
-      console.error('PostgreSQL updateAppointment error', err)
+      console.error('PostgreSQL updateAppointment error:', err)
+      throw new Error('Failed to update appointment in PostgreSQL database.')
     }
   }
 
@@ -1273,7 +1178,7 @@ export async function updateAppointment(
 
       if (!error && data) {
         return {
-          id: data.id,
+          id: String(data.id),
           name: data.name,
           phone: data.phone,
           location: data.location,
@@ -1285,21 +1190,12 @@ export async function updateAppointment(
         }
       }
     } catch (err) {
-      console.error('Supabase updateAppointment error', err)
+      console.error('Supabase updateAppointment error:', err)
+      throw new Error('Failed to update appointment in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  const index = db.appointments.findIndex((a) => a.id === id)
-  if (index === -1) return null
-
-  db.appointments[index] = {
-    ...db.appointments[index],
-    ...updates,
-  }
-  saveLocalDb(db)
-  return db.appointments[index]
+  return null
 }
 
 export async function deleteAppointment(id: string): Promise<boolean> {
@@ -1309,10 +1205,12 @@ export async function deleteAppointment(id: string): Promise<boolean> {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      const res = await pool.query('DELETE FROM public.appointments WHERE id = $1', [id])
+      const targetId = !isNaN(Number(id)) ? Number(id) : id
+      const res = await pool.query('DELETE FROM public.appointments WHERE id = $1', [targetId])
       if ((res.rowCount || 0) > 0) return true
     } catch (err) {
-      console.error('PostgreSQL deleteAppointment error', err)
+      console.error('PostgreSQL deleteAppointment error:', err)
+      throw new Error('Failed to delete appointment in PostgreSQL database.')
     }
   }
 
@@ -1322,17 +1220,535 @@ export async function deleteAppointment(id: string): Promise<boolean> {
       const { error } = await supabaseAdmin.from('appointments').delete().eq('id', id)
       if (!error) return true
     } catch (err) {
-      console.error('Supabase deleteAppointment error', err)
+      console.error('Supabase deleteAppointment error:', err)
+      throw new Error('Failed to delete appointment in Supabase database.')
     }
   }
 
-  // 3. Fallback Local File DB
-  const db = ensureLocalDb()
-  const beforeLength = db.appointments.length
-  db.appointments = db.appointments.filter((a) => a.id !== id)
-  if (db.appointments.length !== beforeLength) {
-    saveLocalDb(db)
-    return true
-  }
   return false
 }
+
+// ----------------------------------------------------
+// CRYPTOGRAPHIC PASSWORD HASHING & VERIFICATION (SCRYPT)
+// ----------------------------------------------------
+
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const derivedKey = crypto.scryptSync(password.trim(), salt, 64)
+  return `scrypt:${salt}:${derivedKey.toString('hex')}`
+}
+
+export function verifyPassword(candidatePassword: string, storedHashOrPlain: string): boolean {
+  if (!storedHashOrPlain || !candidatePassword) return false
+  const cleanPass = candidatePassword.trim()
+
+  // 1. Scrypt Hash Check
+  if (storedHashOrPlain.startsWith('scrypt:')) {
+    const parts = storedHashOrPlain.split(':')
+    if (parts.length !== 3) return false
+    const salt = parts[1]
+    const key = parts[2]
+    try {
+      const derivedKey = crypto.scryptSync(cleanPass, salt, 64)
+      const keyBuffer = Buffer.from(key, 'hex')
+      if (derivedKey.length !== keyBuffer.length) return false
+      return crypto.timingSafeEqual(derivedKey, keyBuffer)
+    } catch {
+      return false
+    }
+  }
+
+  // 2. Backward compatibility fallback for legacy plain text passwords
+  return cleanPass === storedHashOrPlain.trim()
+}
+
+// ----------------------------------------------------
+// ADMIN CREDENTIALS OPERATIONS (DIRECT DATABASE)
+// ----------------------------------------------------
+
+export async function validateAdminCredentials(username: string, password: string): Promise<AdminUser | null> {
+  const pool = getPostgresPool()
+  const cleanUser = username.trim().toLowerCase()
+  const cleanPass = password.trim()
+
+  // 1. Direct PostgreSQL (pgAdmin / localhost)
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const res = await pool.query(
+        'SELECT * FROM public.admin_users WHERE LOWER(username) = $1 LIMIT 1',
+        [cleanUser],
+      )
+      if (res.rows.length > 0) {
+        const row = res.rows[0]
+        if (verifyPassword(cleanPass, row.password)) {
+          // Transparently upgrade legacy plain-text password to scrypt hash
+          if (!row.password.startsWith('scrypt:')) {
+            try {
+              const newHash = hashPassword(cleanPass)
+              await pool.query('UPDATE public.admin_users SET password = $1, updated_at = NOW() WHERE id = $2', [newHash, row.id])
+            } catch (upgradeErr) {
+              console.error('PostgreSQL auto-upgrade password hash error:', upgradeErr)
+            }
+          }
+
+          const role = row.role === 'super_admin' || row.username === 'admin' ? 'super_admin' : 'staff'
+          return {
+            id: String(row.id),
+            username: row.username,
+            name: row.name || (role === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff'),
+            role,
+          }
+        }
+      }
+      return null
+    } catch (err) {
+      console.error('PostgreSQL validateAdminCredentials error:', err)
+    }
+  }
+
+  // 2. Supabase SDK
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('admin_users')
+        .select('*')
+        .ilike('username', cleanUser)
+        .single()
+
+      if (!error && data) {
+        if (verifyPassword(cleanPass, data.password)) {
+          // Transparently upgrade legacy plain-text password to scrypt hash
+          if (!data.password.startsWith('scrypt:')) {
+            try {
+              const newHash = hashPassword(cleanPass)
+              await supabaseAdmin
+                .from('admin_users')
+                .update({ password: newHash, updated_at: new Date().toISOString() })
+                .eq('id', data.id)
+            } catch (upgradeErr) {
+              console.error('Supabase auto-upgrade password hash error:', upgradeErr)
+            }
+          }
+
+          const role = data.role === 'super_admin' || data.username === 'admin' ? 'super_admin' : 'staff'
+          return {
+            id: String(data.id),
+            username: data.username,
+            name: data.name || (role === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff'),
+            role,
+          }
+        }
+      }
+      return null
+    } catch (err) {
+      console.error('Supabase validateAdminCredentials error:', err)
+    }
+  }
+
+  // Initial fallback if DB is still initializing
+  if ((cleanUser === 'admin' || cleanUser === 'drvaidik') && cleanPass === 'drvaidik2026') {
+    return {
+      id: '1',
+      username: 'admin',
+      name: 'Dr. Vaidik Chauhan',
+      role: 'super_admin',
+    }
+  }
+
+  if ((cleanUser === 'staff' || cleanUser === 'reception') && cleanPass === 'staff123') {
+    return {
+      id: '2',
+      username: 'staff',
+      name: 'Clinic Reception Staff',
+      role: 'staff',
+    }
+  }
+
+  return null
+}
+
+export async function updateAdminCredentials(data: {
+  currentUsername: string
+  currentPassword: string
+  newUsername?: string
+  newPassword?: string
+}): Promise<{ success: boolean; message: string; username: string }> {
+  const cleanCurrentUsername = data.currentUsername.trim().toLowerCase()
+  const cleanCurrentPassword = data.currentPassword.trim()
+  const cleanNewUsername = (data.newUsername || data.currentUsername).trim()
+  const cleanNewPassword = (data.newPassword || data.currentPassword).trim()
+
+  const pool = getPostgresPool()
+
+  // 1. Direct PostgreSQL (pgAdmin / localhost)
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const res = await pool.query(
+        'SELECT * FROM public.admin_users WHERE LOWER(username) = $1 LIMIT 1',
+        [cleanCurrentUsername],
+      )
+
+      if (res.rows.length === 0 || !verifyPassword(cleanCurrentPassword, res.rows[0].password)) {
+        return { success: false, message: 'Current password does not match.', username: data.currentUsername }
+      }
+
+      const adminId = res.rows[0].id
+      const finalPasswordHash = data.newPassword && data.newPassword.trim()
+        ? hashPassword(cleanNewPassword)
+        : (res.rows[0].password.startsWith('scrypt:') ? res.rows[0].password : hashPassword(cleanCurrentPassword))
+
+      await pool.query(
+        'UPDATE public.admin_users SET username = $1, password = $2, updated_at = NOW() WHERE id = $3',
+        [cleanNewUsername, finalPasswordHash, adminId],
+      )
+
+      return {
+        success: true,
+        message: 'Admin credentials updated securely in database.',
+        username: cleanNewUsername,
+      }
+    } catch (err) {
+      console.error('PostgreSQL updateAdminCredentials error:', err)
+      throw new Error('Failed to update credentials in database.')
+    }
+  }
+
+  // 2. Supabase SDK
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data: user, error: findError } = await supabaseAdmin
+        .from('admin_users')
+        .select('*')
+        .ilike('username', cleanCurrentUsername)
+        .single()
+
+      if (findError || !user || !verifyPassword(cleanCurrentPassword, user.password)) {
+        return { success: false, message: 'Current password does not match.', username: data.currentUsername }
+      }
+
+      const finalPasswordHash = data.newPassword && data.newPassword.trim()
+        ? hashPassword(cleanNewPassword)
+        : (user.password.startsWith('scrypt:') ? user.password : hashPassword(cleanCurrentPassword))
+
+      const { error: updateError } = await supabaseAdmin
+        .from('admin_users')
+        .update({
+          username: cleanNewUsername,
+          password: finalPasswordHash,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      return {
+        success: true,
+        message: 'Admin credentials updated securely in Supabase database.',
+        username: cleanNewUsername,
+      }
+    } catch (err) {
+      console.error('Supabase updateAdminCredentials error:', err)
+      throw new Error('Failed to update credentials in Supabase database.')
+    }
+  }
+
+  throw new Error('Database is not connected. Please check .env.local.')
+}
+
+// ----------------------------------------------------
+// SUPER ADMIN STAFF MANAGEMENT (DIRECT DATABASE)
+// ----------------------------------------------------
+
+export async function getAllAdminUsers(): Promise<AdminUser[]> {
+  const pool = getPostgresPool()
+
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const res = await pool.query(
+        'SELECT id, username, name, role, created_at, updated_at FROM public.admin_users ORDER BY id ASC',
+      )
+      return res.rows.map((row) => ({
+        id: String(row.id),
+        username: row.username,
+        name: row.name || (row.role === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff'),
+        role: row.role || (row.username === 'admin' ? 'super_admin' : 'staff'),
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+        updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+      }))
+    } catch (err) {
+      console.error('PostgreSQL getAllAdminUsers error:', err)
+    }
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('admin_users')
+        .select('id, username, name, role, created_at, updated_at')
+        .order('id', { ascending: true })
+
+      if (!error && data) {
+        return data.map((item: any) => ({
+          id: String(item.id),
+          username: item.username,
+          name: item.name || (item.role === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff'),
+          role: item.role || (item.username === 'admin' ? 'super_admin' : 'staff'),
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        }))
+      }
+    } catch (err) {
+      console.error('Supabase getAllAdminUsers error:', err)
+    }
+  }
+
+  return [
+    {
+      id: '1',
+      username: 'admin',
+      name: 'Dr. Vaidik Chauhan',
+      role: 'super_admin',
+    },
+    {
+      id: '2',
+      username: 'staff',
+      name: 'Clinic Reception Staff',
+      role: 'staff',
+    },
+  ]
+}
+
+export async function createAdminUser(data: {
+  name: string
+  username: string
+  password: string
+  role?: string
+}): Promise<AdminUser> {
+  const cleanName = data.name.trim()
+  const cleanUsername = data.username.trim().toLowerCase()
+  const cleanPassword = data.password.trim()
+  const cleanRole = data.role === 'super_admin' ? 'super_admin' : 'staff'
+  const hashedPassword = hashPassword(cleanPassword)
+
+  const pool = getPostgresPool()
+
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const checkRes = await pool.query(
+        'SELECT id FROM public.admin_users WHERE LOWER(username) = $1 LIMIT 1',
+        [cleanUsername],
+      )
+      if (checkRes.rows.length > 0) {
+        throw new Error(`Username "${cleanUsername}" is already in use. Please choose another username.`)
+      }
+
+      const res = await pool.query(
+        `INSERT INTO public.admin_users (name, username, password, role, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW())
+         RETURNING id, username, name, role, created_at, updated_at`,
+        [cleanName, cleanUsername, hashedPassword, cleanRole],
+      )
+
+      if (res.rows.length > 0) {
+        const row = res.rows[0]
+        return {
+          id: String(row.id),
+          username: row.username,
+          name: row.name,
+          role: row.role,
+          createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+        }
+      }
+    } catch (err: any) {
+      console.error('PostgreSQL createAdminUser error:', err)
+      throw err
+    }
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data: inserted, error } = await supabaseAdmin
+        .from('admin_users')
+        .insert([
+          {
+            name: cleanName,
+            username: cleanUsername,
+            password: hashedPassword,
+            role: cleanRole,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error(`Username "${cleanUsername}" is already taken.`)
+        }
+        throw error
+      }
+
+      if (inserted) {
+        return {
+          id: String(inserted.id),
+          username: inserted.username,
+          name: inserted.name,
+          role: inserted.role,
+          createdAt: inserted.created_at,
+        }
+      }
+    } catch (err: any) {
+      console.error('Supabase createAdminUser error:', err)
+      throw err
+    }
+  }
+
+  throw new Error('Database is not connected. Please check database connection.')
+}
+
+export async function updateAdminUser(
+  id: string,
+  updates: {
+    name?: string
+    username?: string
+    password?: string
+    role?: string
+  },
+): Promise<AdminUser> {
+  const pool = getPostgresPool()
+
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const fields: string[] = []
+      const values: any[] = []
+      let idx = 1
+
+      if (updates.name !== undefined) {
+        fields.push(`name = $${idx++}`)
+        values.push(updates.name.trim())
+      }
+      if (updates.username !== undefined) {
+        fields.push(`username = $${idx++}`)
+        values.push(updates.username.trim().toLowerCase())
+      }
+      if (updates.password !== undefined && updates.password.trim()) {
+        fields.push(`password = $${idx++}`)
+        values.push(hashPassword(updates.password.trim()))
+      }
+      if (updates.role !== undefined) {
+        fields.push(`role = $${idx++}`)
+        values.push(updates.role === 'super_admin' ? 'super_admin' : 'staff')
+      }
+
+      fields.push(`updated_at = NOW()`)
+      values.push(!isNaN(Number(id)) ? Number(id) : id)
+
+      const res = await pool.query(
+        `UPDATE public.admin_users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, username, name, role, created_at, updated_at`,
+        values,
+      )
+
+      if (res.rows.length > 0) {
+        const row = res.rows[0]
+        return {
+          id: String(row.id),
+          username: row.username,
+          name: row.name,
+          role: row.role,
+          createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+          updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+        }
+      }
+      throw new Error('User not found.')
+    } catch (err: any) {
+      console.error('PostgreSQL updateAdminUser error:', err)
+      throw err
+    }
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const dbUpdates: any = { updated_at: new Date().toISOString() }
+      if (updates.name !== undefined) dbUpdates.name = updates.name.trim()
+      if (updates.username !== undefined) dbUpdates.username = updates.username.trim().toLowerCase()
+      if (updates.password !== undefined && updates.password.trim()) dbUpdates.password = hashPassword(updates.password.trim())
+      if (updates.role !== undefined) dbUpdates.role = updates.role === 'super_admin' ? 'super_admin' : 'staff'
+
+      const { data, error } = await supabaseAdmin
+        .from('admin_users')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      if (data) {
+        return {
+          id: String(data.id),
+          username: data.username,
+          name: data.name,
+          role: data.role,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        }
+      }
+    } catch (err: any) {
+      console.error('Supabase updateAdminUser error:', err)
+      throw err
+    }
+  }
+
+  throw new Error('Database is not connected.')
+}
+
+export async function deleteAdminUser(id: string): Promise<boolean> {
+  const pool = getPostgresPool()
+
+  if (pool) {
+    try {
+      await ensurePostgresTables(pool)
+      const targetId = !isNaN(Number(id)) ? Number(id) : id
+
+      const checkRes = await pool.query('SELECT username, role FROM public.admin_users WHERE id = $1', [targetId])
+      if (checkRes.rows.length > 0) {
+        const user = checkRes.rows[0]
+        if (user.username === 'admin' || user.role === 'super_admin') {
+          throw new Error('Main Director / Super Admin account cannot be deleted.')
+        }
+      }
+
+      const res = await pool.query('DELETE FROM public.admin_users WHERE id = $1', [targetId])
+      return (res.rowCount || 0) > 0
+    } catch (err: any) {
+      console.error('PostgreSQL deleteAdminUser error:', err)
+      throw err
+    }
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      const { data: user } = await supabaseAdmin.from('admin_users').select('username, role').eq('id', id).single()
+      if (user && (user.username === 'admin' || user.role === 'super_admin')) {
+        throw new Error('Main Director / Super Admin account cannot be deleted.')
+      }
+
+      const { error } = await supabaseAdmin.from('admin_users').delete().eq('id', id)
+      if (!error) return true
+      throw error
+    } catch (err: any) {
+      console.error('Supabase deleteAdminUser error:', err)
+      throw err
+    }
+  }
+
+  throw new Error('Database is not connected.')
+}
+

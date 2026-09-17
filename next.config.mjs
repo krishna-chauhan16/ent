@@ -7,6 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   devIndicators: false,
+  serverExternalPackages: ['pg'],
 }
 
 export default nextConfig

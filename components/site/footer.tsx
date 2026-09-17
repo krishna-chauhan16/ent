@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MapPin, Mail, Phone, Send, Stethoscope, ShieldCheck, HeartPulse, Lock } from 'lucide-react'
 import { site, navLinks } from '@/lib/site'
+import { VisitorCounter } from './visitor-counter'
 
 const surgicalHighlights = [
   'Septoplasty (1200+ Cases)',
@@ -138,11 +139,11 @@ export function Footer() {
           <p>
             &copy; {new Date().getFullYear()} {site.doctor.name}, MS (ENT) &middot; {site.hospital.name}. All rights reserved.
           </p>
-          <div className="flex items-center gap-5">
-            <span>Director &amp; Head, Dept of ENT</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <VisitorCounter />
             <a
               href="/admin"
-              className="inline-flex items-center gap-1 text-primary-foreground/60 hover:text-accent transition-colors dark:text-muted-foreground dark:hover:text-accent"
+              className="inline-flex items-center gap-1.5 text-primary-foreground/75 hover:text-accent transition-colors dark:text-muted-foreground dark:hover:text-accent"
               title="Doctor / Staff Admin Portal"
             >
               <Lock className="size-3" />

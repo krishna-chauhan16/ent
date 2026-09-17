@@ -38,9 +38,17 @@ import {
   Tag,
   Filter,
   Layers,
+  Globe,
+  Compass,
+  Laptop,
+  KeyRound,
+  Crown,
+  UserCheck,
+  UserPlus,
+  ShieldAlert,
 } from 'lucide-react'
 import { site } from '@/lib/site'
-import type { Appointment, HospitalCenter, ENTConcern } from '@/lib/db'
+import type { Appointment, HospitalCenter, ENTConcern, VisitorLog, AdminUser } from '@/lib/types'
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -51,8 +59,46 @@ export default function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
 
+  // Role Based Access State: 'super_admin' (Director Dr. Vaidik) or 'staff' (Clinic Reception)
+  const [userRole, setUserRole] = useState<'super_admin' | 'staff'>('super_admin')
+  const [adminDisplayName, setAdminDisplayName] = useState<string>('Dr. Vaidik Chauhan')
+
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'appointments' | 'centers' | 'concerns'>('appointments')
+  const [activeTab, setActiveTab] = useState<'appointments' | 'centers' | 'concerns' | 'visitors' | 'security'>('appointments')
+  const [visitorLogs, setVisitorLogs] = useState<VisitorLog[]>([])
+  const [visitorSearch, setVisitorSearch] = useState('')
+
+  // Security & Account Settings State (Database Auth)
+  const [currentAdminUser, setCurrentAdminUser] = useState('admin')
+  const [secCurrentPassword, setSecCurrentPassword] = useState('')
+  const [secNewUsername, setSecNewUsername] = useState('admin')
+  const [secNewPassword, setSecNewPassword] = useState('')
+  const [secConfirmPassword, setSecConfirmPassword] = useState('')
+  const [secShowCurrentPass, setSecShowCurrentPass] = useState(false)
+  const [secShowNewPass, setSecShowNewPass] = useState(false)
+  const [secLoading, setSecLoading] = useState(false)
+  const [secError, setSecError] = useState('')
+  const [secSuccess, setSecSuccess] = useState('')
+
+  // Staff Accounts Management State (Super Admin Only)
+  const [staffUsers, setStaffUsers] = useState<AdminUser[]>([])
+  const [staffLoading, setStaffLoading] = useState(false)
+  const [staffSearchQuery, setStaffSearchQuery] = useState('')
+  const [staffModalOpen, setStaffModalOpen] = useState(false)
+  const [editingStaffUser, setEditingStaffUser] = useState<AdminUser | null>(null)
+  const [staffForm, setStaffForm] = useState({
+    name: '',
+    username: '',
+    password: '',
+    role: 'staff',
+  })
+  const [staffFormLoading, setStaffFormLoading] = useState(false)
+  const [staffFormError, setStaffFormError] = useState('')
+  const [showStaffPass, setShowStaffPass] = useState(false)
+  const [deleteStaffModalOpen, setDeleteStaffModalOpen] = useState(false)
+  const [deletingStaffUser, setDeletingStaffUser] = useState<AdminUser | null>(null)
+  const [deleteStaffLoading, setDeleteStaffLoading] = useState(false)
+  const [deleteStaffError, setDeleteStaffError] = useState('')
 
   // Dashboard Data State
   const [stats, setStats] = useState({
@@ -130,8 +176,21 @@ export default function AdminPage() {
   // Check existing login in sessionStorage (clears automatically when tab is closed)
   useEffect(() => {
     const token = sessionStorage.getItem('dr_vaidik_admin_token')
+    const savedUser = sessionStorage.getItem('dr_vaidik_admin_username')
+    const savedRole = sessionStorage.getItem('dr_vaidik_admin_role') as 'super_admin' | 'staff' | null
+    const savedName = sessionStorage.getItem('dr_vaidik_admin_name')
     if (token) {
       setIsAuthenticated(true)
+      if (savedUser) {
+        setCurrentAdminUser(savedUser)
+        setSecNewUsername(savedUser)
+      }
+      if (savedRole) {
+        setUserRole(savedRole)
+      }
+      if (savedName) {
+        setAdminDisplayName(savedName)
+      }
     }
   }, [])
 
@@ -139,14 +198,16 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [aptsRes, centersRes, concernsRes] = await Promise.all([
+      const [aptsRes, centersRes, concernsRes, visitorsRes] = await Promise.all([
         fetch('/api/appointments'),
         fetch('/api/centers?all=true'),
         fetch('/api/concerns?all=true'),
+        fetch('/api/visitors?logs=true'),
       ])
       const aptsData = await aptsRes.json()
       const centersData = await centersRes.json()
       const concernsData = await concernsRes.json()
+      const visitorsData = await visitorsRes.json()
 
       if (aptsData.success) {
         setAppointments(aptsData.appointments)
@@ -157,6 +218,20 @@ export default function AdminPage() {
       }
       if (concernsData.success) {
         setConcerns(concernsData.concerns)
+      }
+      if (visitorsData.success && visitorsData.logs) {
+        setVisitorLogs(visitorsData.logs)
+      }
+
+      // Fetch Staff Users if Super Admin
+      try {
+        const usersRes = await fetch('/api/auth/users')
+        const usersData = await usersRes.json()
+        if (usersData.success && usersData.users) {
+          setStaffUsers(usersData.users)
+        }
+      } catch (uErr) {
+        console.error('Failed to fetch staff users', uErr)
       }
     } catch (err) {
       console.error('Failed to load dashboard data', err)
@@ -406,7 +481,17 @@ export default function AdminPage() {
       })
       const data = await res.json()
       if (data.success) {
+        const loggedUser = data.username || username
+        const role = data.role === 'super_admin' ? 'super_admin' : 'staff'
+        const dName = data.doctorName || (role === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff')
         sessionStorage.setItem('dr_vaidik_admin_token', data.token)
+        sessionStorage.setItem('dr_vaidik_admin_username', loggedUser)
+        sessionStorage.setItem('dr_vaidik_admin_role', role)
+        sessionStorage.setItem('dr_vaidik_admin_name', dName)
+        setCurrentAdminUser(loggedUser)
+        setSecNewUsername(loggedUser)
+        setUserRole(role)
+        setAdminDisplayName(dName)
         localStorage.removeItem('dr_vaidik_admin_token')
         setIsAuthenticated(true)
       } else {
@@ -421,10 +506,218 @@ export default function AdminPage() {
 
   function handleLogout() {
     sessionStorage.removeItem('dr_vaidik_admin_token')
+    sessionStorage.removeItem('dr_vaidik_admin_username')
+    sessionStorage.removeItem('dr_vaidik_admin_role')
+    sessionStorage.removeItem('dr_vaidik_admin_name')
     localStorage.removeItem('dr_vaidik_admin_token')
     setIsAuthenticated(false)
     setUsername('')
     setPassword('')
+  }
+
+  // Handle Admin Change Username / Password (Saved to Database)
+  async function handleChangeCredentials(e: React.FormEvent) {
+    e.preventDefault()
+    setSecError('')
+    setSecSuccess('')
+
+    if (!secCurrentPassword) {
+      setSecError('Please enter your current password to verify.')
+      return
+    }
+
+    if (!secNewUsername.trim()) {
+      setSecError('Username cannot be empty.')
+      return
+    }
+
+    if (secNewPassword) {
+      if (secNewPassword.length < 4) {
+        setSecError('New password must be at least 4 characters long.')
+        return
+      }
+      if (secNewPassword !== secConfirmPassword) {
+        setSecError('New passwords do not match. Please verify.')
+        return
+      }
+    }
+
+    setSecLoading(true)
+
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentUsername: currentAdminUser,
+          currentPassword: secCurrentPassword,
+          newUsername: secNewUsername.trim(),
+          newPassword: secNewPassword.trim() || undefined,
+        }),
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        const updatedUser = data.username || secNewUsername.trim()
+        setCurrentAdminUser(updatedUser)
+        setSecNewUsername(updatedUser)
+        sessionStorage.setItem('dr_vaidik_admin_username', updatedUser)
+        setSecCurrentPassword('')
+        setSecNewPassword('')
+        setSecConfirmPassword('')
+        setSecSuccess(data.message || 'Credentials updated successfully in Database!')
+      } else {
+        setSecError(data.error || 'Failed to update credentials.')
+      }
+    } catch {
+      setSecError('Network error. Please try again.')
+    } finally {
+      setSecLoading(false)
+    }
+  }
+
+  // Fetch Staff Users List
+  const fetchStaffUsers = useCallback(async () => {
+    setStaffLoading(true)
+    try {
+      const res = await fetch('/api/auth/users')
+      const data = await res.json()
+      if (data.success && data.users) {
+        setStaffUsers(data.users)
+      }
+    } catch (err) {
+      console.error('Failed to load staff users', err)
+    } finally {
+      setStaffLoading(false)
+    }
+  }, [])
+
+  // Staff Modal Open Handlers
+  function openAddStaffModal() {
+    setEditingStaffUser(null)
+    setStaffForm({
+      name: '',
+      username: '',
+      password: '',
+      role: 'staff',
+    })
+    setShowStaffPass(false)
+    setStaffFormError('')
+    setStaffModalOpen(true)
+  }
+
+  function openEditStaffModal(u: AdminUser) {
+    setEditingStaffUser(u)
+    setStaffForm({
+      name: u.name || '',
+      username: u.username || '',
+      password: '',
+      role: u.role || 'staff',
+    })
+    setShowStaffPass(false)
+    setStaffFormError('')
+    setStaffModalOpen(true)
+  }
+
+  async function handleSaveStaffForm(e: React.FormEvent) {
+    e.preventDefault()
+    setStaffFormError('')
+
+    if (!staffForm.username.trim()) {
+      setStaffFormError('Please enter a username for this staff member.')
+      return
+    }
+
+    if (!editingStaffUser && !staffForm.password.trim()) {
+      setStaffFormError('Please provide an initial password for this new account.')
+      return
+    }
+
+    if (staffForm.password.trim() && staffForm.password.trim().length < 4) {
+      setStaffFormError('Password must be at least 4 characters long.')
+      return
+    }
+
+    setStaffFormLoading(true)
+
+    try {
+      if (editingStaffUser) {
+        const res = await fetch('/api/auth/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingStaffUser.id,
+            name: staffForm.name.trim() || undefined,
+            username: staffForm.username.trim(),
+            password: staffForm.password.trim() || undefined,
+            role: staffForm.role,
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          await fetchStaffUsers()
+          setStaffModalOpen(false)
+        } else {
+          setStaffFormError(data.error || 'Failed to update staff user.')
+        }
+      } else {
+        const res = await fetch('/api/auth/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: staffForm.name.trim(),
+            username: staffForm.username.trim(),
+            password: staffForm.password.trim(),
+            role: staffForm.role,
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          await fetchStaffUsers()
+          setStaffModalOpen(false)
+        } else {
+          setStaffFormError(data.error || 'Failed to create staff user.')
+        }
+      }
+    } catch {
+      setStaffFormError('Network error. Please try again.')
+    } finally {
+      setStaffFormLoading(false)
+    }
+  }
+
+  function openDeleteStaffModal(u: AdminUser) {
+    if (u.username === 'admin' || u.role === 'super_admin' || u.id === '1') {
+      alert('The primary Director / Super Admin account cannot be deleted.')
+      return
+    }
+    setDeletingStaffUser(u)
+    setDeleteStaffError('')
+    setDeleteStaffModalOpen(true)
+  }
+
+  async function handleConfirmDeleteStaff() {
+    if (!deletingStaffUser) return
+    setDeleteStaffLoading(true)
+    setDeleteStaffError('')
+
+    try {
+      const res = await fetch(`/api/auth/users?id=${deletingStaffUser.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (data.success) {
+        await fetchStaffUsers()
+        setDeleteStaffModalOpen(false)
+        setDeletingStaffUser(null)
+      } else {
+        setDeleteStaffError(data.error || 'Failed to delete staff member.')
+      }
+    } catch {
+      setDeleteStaffError('Network error. Please try again.')
+    } finally {
+      setDeleteStaffLoading(false)
+    }
   }
 
   // Update Status Handler
@@ -662,9 +955,9 @@ For any assistance: +91 9601074848.`
   // Export to CSV
   function exportCSV() {
     if (appointments.length === 0) return
-    const headers = ['ID', 'Patient Name', 'Phone', 'Hospital', 'Concern', 'Date', 'Status', 'Submitted At']
-    const rows = appointments.map((a) => [
-      `"${a.id}"`,
+    const headers = ['Sr. No.', 'Patient Name', 'Phone', 'Hospital', 'Concern', 'Date', 'Status', 'Submitted At']
+    const rows = appointments.map((a, idx) => [
+      `"${idx + 1}"`,
       `"${a.name}"`,
       `"${a.phone}"`,
       `"${a.location}"`,
@@ -845,6 +1138,17 @@ For any assistance: +91 9601074848.`
           </div>
 
           <div className="flex items-center gap-2.5">
+            {userRole === 'super_admin' ? (
+              <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+                <Crown className="size-3.5 text-amber-500" />
+                <span>Super Admin / Director</span>
+              </span>
+            ) : (
+              <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                <UserCheck className="size-3.5 text-emerald-500" />
+                <span>Clinic Receptionist / Staff</span>
+              </span>
+            )}
             <button
               type="button"
               onClick={fetchData}
@@ -891,30 +1195,65 @@ For any assistance: +91 9601074848.`
             <span>Patient Appointments ({appointments.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('centers')}
-            className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
-              activeTab === 'centers'
-                ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
-                : 'bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
-            }`}
-          >
-            <Building2 className="size-4" />
-            <span>Preferred Centers Master ({centers.length})</span>
-          </button>
+          {/* Super Admin Only: Preferred Centers Master */}
+          {userRole === 'super_admin' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('centers')}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
+                activeTab === 'centers'
+                  ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
+                  : 'bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
+              }`}
+            >
+              <Building2 className="size-4" />
+              <span>Preferred Centers Master ({centers.length})</span>
+            </button>
+          )}
+
+          {/* Super Admin Only: ENT Concerns Master */}
+          {userRole === 'super_admin' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('concerns')}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
+                activeTab === 'concerns'
+                  ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
+                  : 'bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
+              }`}
+            >
+              <Activity className="size-4" />
+              <span>ENT Concerns Master ({concerns.length})</span>
+            </button>
+          )}
+
+          {/* Super Admin Only: Live Visitor Logs */}
+          {userRole === 'super_admin' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('visitors')}
+              className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
+                activeTab === 'visitors'
+                  ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
+                  : 'bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
+              }`}
+            >
+              <Users className="size-4" />
+              <span>Live Visitor Logs ({visitorLogs.length})</span>
+            </button>
+          )}
 
           <button
             type="button"
-            onClick={() => setActiveTab('concerns')}
+            onClick={() => setActiveTab('security')}
             className={`inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-bold transition-all ${
-              activeTab === 'concerns'
+              activeTab === 'security'
                 ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
                 : 'bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-muted'
             }`}
           >
-            <Activity className="size-4" />
-            <span>ENT Concerns Master ({concerns.length})</span>
+            <ShieldCheck className="size-4" />
+            <span>Account &amp; Security</span>
           </button>
         </div>
 
@@ -1202,6 +1541,7 @@ For any assistance: +91 9601074848.`
                   <table className="w-full text-left text-xs">
                     <thead className="bg-secondary/70 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
                       <tr>
+                        <th className="px-4 py-3.5 font-bold w-16">Sr. No.</th>
                         <th className="px-5 py-3.5 font-bold">Patient Details</th>
                         <th className="px-5 py-3.5 font-bold">Hospital &amp; Concern</th>
                         <th className="px-5 py-3.5 font-bold">Appointment Date</th>
@@ -1210,8 +1550,13 @@ For any assistance: +91 9601074848.`
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {filteredAppointments.map((apt) => (
+                      {filteredAppointments.map((apt, index) => (
                         <tr key={apt.id} className="hover:bg-muted/40 transition-colors">
+                          {/* Sequence Number */}
+                          <td className="px-4 py-4 font-mono font-bold text-foreground">
+                            {index + 1}
+                          </td>
+
                           {/* Patient */}
                           <td className="px-5 py-4">
                             <div className="font-bold text-sm text-foreground">
@@ -1659,6 +2004,547 @@ For any assistance: +91 9601074848.`
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: VISITOR LOGS (IP & PATH TRACKING) */}
+        {activeTab === 'visitors' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Header & Stats Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground">
+                  Live Visitor Access Logs &amp; IP Tracking
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Real-time dynamic logs recording every site visit, client IP address, URL path, and timestamp.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchData}
+                disabled={loading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-xs font-bold text-accent-foreground shadow-md shadow-accent/20 transition-transform hover:scale-[1.02] active:scale-[0.98] self-start sm:self-auto"
+              >
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh Live Logs</span>
+              </button>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total Site Hits</p>
+                <p className="font-heading text-2xl font-bold text-foreground mt-1">{stats.visitorsTotal.toLocaleString()}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Today's Visits</p>
+                <p className="font-heading text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">+{stats.visitorsToday}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Recent Logged Hits</p>
+                <p className="font-heading text-2xl font-bold text-foreground mt-1">{visitorLogs.length}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Database Engine</p>
+                <p className="text-xs font-bold text-accent mt-2 flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#25D366] animate-pulse" />
+                  {stats.databaseSource}
+                </p>
+              </div>
+            </div>
+
+            {/* Filter / Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Filter logs by IP Address, Path, or Device..."
+                  value={visitorSearch}
+                  onChange={(e) => setVisitorSearch(e.target.value)}
+                  className="h-11 w-full rounded-2xl border border-input bg-card pl-9 pr-4 text-xs text-foreground placeholder:text-muted-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              {visitorSearch && (
+                <button
+                  type="button"
+                  onClick={() => setVisitorSearch('')}
+                  className="h-11 rounded-2xl border border-border px-4 text-xs font-bold text-foreground hover:bg-muted"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+
+            {/* Visitor Logs Table */}
+            {visitorLogs.length === 0 ? (
+              <div className="rounded-3xl border border-border bg-card p-12 text-center text-muted-foreground">
+                <Users className="size-10 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="font-heading text-base font-bold text-foreground">No Visitor Logs Yet</p>
+                <p className="text-xs mt-1">Logs will appear automatically whenever visitors access the website.</p>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/50 font-bold text-muted-foreground">
+                        <th className="py-3.5 px-4 w-16">Sr. No.</th>
+                        <th className="py-3.5 px-4">Client IP Address</th>
+                        <th className="py-3.5 px-4">Visited Path</th>
+                        <th className="py-3.5 px-4">Visited Timestamp</th>
+                        <th className="py-3.5 px-4">Device / User Agent</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {visitorLogs
+                        .filter((log) => {
+                          if (!visitorSearch.trim()) return true
+                          const q = visitorSearch.toLowerCase()
+                          return (
+                            log.ip?.toLowerCase().includes(q) ||
+                            log.path?.toLowerCase().includes(q) ||
+                            log.userAgent?.toLowerCase().includes(q) ||
+                            log.date?.includes(q)
+                          )
+                        })
+                        .map((log, index) => (
+                          <tr key={log.id || index} className="hover:bg-muted/40 transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                              {index + 1}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/25 px-3 py-1 font-mono text-[11px] font-bold text-accent">
+                                <Globe className="size-3" />
+                                {log.ip || '127.0.0.1'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 max-w-[240px]">
+                              <a
+                                href={log.path && log.path.startsWith('http') ? log.path : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-secondary hover:bg-muted/80 px-2.5 py-1 font-mono text-[11px] font-bold text-foreground max-w-full truncate transition-colors"
+                                title={log.path || '/'}
+                              >
+                                <Compass className="size-3 text-muted-foreground shrink-0" />
+                                <span className="truncate">{log.path || '/'}</span>
+                              </a>
+                            </td>
+                            <td className="py-3.5 px-4 text-muted-foreground whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                                <Clock className="size-3.5 text-accent shrink-0" />
+                                <span>
+                                  {log.visitedAt
+                                    ? new Date(log.visitedAt).toLocaleString('en-IN', {
+                                        dateStyle: 'medium',
+                                        timeStyle: 'medium',
+                                      })
+                                    : log.date || 'Today'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 max-w-xs text-muted-foreground truncate" title={log.userAgent}>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Laptop className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate text-[11px]">
+                                  {log.userAgent
+                                    ? log.userAgent.length > 50
+                                      ? `${log.userAgent.slice(0, 50)}...`
+                                      : log.userAgent
+                                    : 'Direct Browser Client'}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 5: ACCOUNT & SECURITY SETTINGS */}
+        {activeTab === 'security' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            {/* Header Description */}
+            <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-sm">
+                    <ShieldCheck className="size-6" />
+                  </span>
+                  <div>
+                    <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground">
+                      Admin Account &amp; Security Settings
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Direct Database Authentication (PostgreSQL / Supabase). Change your Admin Username or Password safely.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1.5 font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="size-2 rounded-full bg-[#25D366] animate-pulse" />
+                    Active User: {currentAdminUser}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Account Details Info Card */}
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-5 h-fit">
+                <h3 className="font-heading text-base font-bold text-foreground flex items-center gap-2">
+                  <User className="size-4 text-accent" />
+                  <span>Profile Overview</span>
+                </h3>
+
+                <div className="space-y-3 text-xs">
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Account Name</p>
+                    <p className="font-heading text-sm font-bold text-foreground mt-1">
+                      {userRole === 'super_admin' ? 'Dr. Vaidik Chauhan' : 'Clinic Reception Staff'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {userRole === 'super_admin' ? 'MS (ENT) - Head & Neck Surgeon' : 'Front Desk & Patient Coordination'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Assigned Role</p>
+                    <p className="text-xs font-bold mt-1 flex items-center gap-1.5">
+                      {userRole === 'super_admin' ? (
+                        <>
+                          <Crown className="size-3.5 text-amber-500 shrink-0" />
+                          <span className="text-amber-600 dark:text-amber-400">Super Admin / Director (Full Control)</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="size-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-emerald-600 dark:text-emerald-400">Clinic Receptionist / Staff (OPD Management)</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3.5 text-amber-700 dark:text-amber-300 text-xs">
+                  <p className="font-semibold flex items-center gap-1.5 mb-1">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    <span>Security Tip</span>
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    Choose a strong password containing letters, numbers, and special characters. Your new credentials will update immediately in the PostgreSQL/Supabase database.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right 2 Columns: Credentials Update Form */}
+              <div className="lg:col-span-2 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+                <h3 className="font-heading text-base font-bold text-foreground flex items-center gap-2 mb-1">
+                  <KeyRound className="size-4 text-accent" />
+                  <span>Change Username &amp; Password</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mb-6">
+                  Enter your current password for verification, then enter your new username or new password.
+                </p>
+
+                {secError && (
+                  <div className="mb-5 flex items-center gap-2.5 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-medium text-destructive animate-in fade-in">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>{secError}</span>
+                  </div>
+                )}
+
+                {secSuccess && (
+                  <div className="mb-5 flex items-center gap-2.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+                    <Check className="size-4 shrink-0" />
+                    <span>{secSuccess}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleChangeCredentials} className="space-y-5">
+                  {/* Field 1: Current Password (Verification) */}
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1.5">
+                      Current Password <span className="text-destructive">*</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                      <input
+                        type={secShowCurrentPass ? 'text' : 'password'}
+                        required
+                        value={secCurrentPassword}
+                        onChange={(e) => setSecCurrentPassword(e.target.value)}
+                        placeholder="Enter your current active password"
+                        className="h-11 w-full rounded-2xl border border-input bg-background pl-10 pr-11 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSecShowCurrentPass(!secShowCurrentPass)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {secShowCurrentPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
+                    {/* Field 2: New Username */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-foreground mb-1.5">
+                        Admin Username
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <input
+                          type="text"
+                          required
+                          value={secNewUsername}
+                          onChange={(e) => setSecNewUsername(e.target.value)}
+                          placeholder="e.g. admin or drvaidik"
+                          className="h-11 w-full rounded-2xl border border-input bg-background pl-10 pr-4 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Field 3: New Password */}
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1.5">
+                        New Password (Leave blank to keep current)
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <input
+                          type={secShowNewPass ? 'text' : 'password'}
+                          value={secNewPassword}
+                          onChange={(e) => setSecNewPassword(e.target.value)}
+                          placeholder="Enter new strong password"
+                          className="h-11 w-full rounded-2xl border border-input bg-background pl-10 pr-11 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSecShowNewPass(!secShowNewPass)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {secShowNewPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Field 4: Confirm New Password */}
+                    <div>
+                      <label className="block text-xs font-bold text-foreground mb-1.5">
+                        Confirm New Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <input
+                          type={secShowNewPass ? 'text' : 'password'}
+                          value={secConfirmPassword}
+                          onChange={(e) => setSecConfirmPassword(e.target.value)}
+                          placeholder="Re-enter new password"
+                          className="h-11 w-full rounded-2xl border border-input bg-background pl-10 pr-4 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                    <div className="pt-3">
+                    <button
+                      type="submit"
+                      disabled={secLoading}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-accent px-6 text-xs font-bold text-accent-foreground shadow-md shadow-accent/20 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {secLoading ? (
+                        <>
+                          <RefreshCw className="size-4 animate-spin" />
+                          <span>Saving to Database...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-4" />
+                          <span>Update Credentials in Database</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* SUPER ADMIN ONLY: MULTIPLE STAFF ACCOUNTS MANAGEMENT */}
+            {userRole === 'super_admin' && (
+              <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex size-11 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-sm">
+                      <Users className="size-6" />
+                    </span>
+                    <div>
+                      <h3 className="font-heading text-lg font-bold text-foreground">
+                        Clinic Staff &amp; Receptionist User Accounts Master
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Provisional Control: Create multiple staff accounts, assign roles, reset staff passwords, and manage clinic front desk permissions.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={openAddStaffModal}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-2.5 text-xs font-bold text-accent-foreground shadow-md shadow-accent/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Plus className="size-4" />
+                    <span>Add New Staff Account</span>
+                  </button>
+                </div>
+
+                {/* Filter and Search */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={staffSearchQuery}
+                      onChange={(e) => setStaffSearchQuery(e.target.value)}
+                      placeholder="Search by staff name or username..."
+                      className="h-10 w-full rounded-xl border border-input bg-background pl-10 pr-4 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 font-bold text-foreground">
+                      <UserCheck className="size-3.5 text-accent" />
+                      <span>{staffUsers.length} Registered Accounts</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={fetchStaffUsers}
+                      disabled={staffLoading}
+                      title="Refresh Staff List"
+                      className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className={`size-3.5 ${staffLoading ? 'animate-spin text-accent' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Staff Table */}
+                <div className="overflow-x-auto rounded-2xl border border-border">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-4 py-3.5 w-16">Sr. No.</th>
+                        <th className="px-4 py-3.5">Staff User &amp; Name</th>
+                        <th className="px-4 py-3.5">Login Username</th>
+                        <th className="px-4 py-3.5">Assigned Role &amp; Access</th>
+                        <th className="px-4 py-3.5">Created Date</th>
+                        <th className="px-4 py-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {staffUsers
+                        .filter(
+                          (u) =>
+                            !staffSearchQuery.trim() ||
+                            u.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) ||
+                            u.username.toLowerCase().includes(staffSearchQuery.toLowerCase()) ||
+                            u.role.toLowerCase().includes(staffSearchQuery.toLowerCase()),
+                        )
+                        .map((u, index) => {
+                          const isPrimaryAdmin = u.username === 'admin' || u.id === '1'
+                          const isSuperAdminRole = u.role === 'super_admin' || u.username === 'admin'
+
+                          return (
+                            <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-3.5 font-mono font-bold text-foreground">
+                                {index + 1}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={`inline-flex size-9 items-center justify-center rounded-xl font-bold text-xs ${
+                                      isSuperAdminRole
+                                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    }`}
+                                  >
+                                    {isSuperAdminRole ? <Crown className="size-4.5" /> : <User className="size-4.5" />}
+                                  </span>
+                                  <div>
+                                    <p className="font-bold text-foreground">{u.name}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {isPrimaryAdmin ? 'Primary Director Account' : 'Front Desk Reception Staff'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-2.5 py-1 font-mono text-xs font-semibold text-foreground border border-border/60">
+                                  <KeyRound className="size-3 text-accent" />
+                                  <span>{u.username}</span>
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                {isSuperAdminRole ? (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                                    <Crown className="size-3 text-amber-500" />
+                                    <span>Super Admin / Director</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                                    <UserCheck className="size-3 text-emerald-500" />
+                                    <span>Clinic Receptionist / Staff</span>
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5 text-muted-foreground">
+                                {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                }) : 'System Default'}
+                              </td>
+                              <td className="px-4 py-3.5 text-right">
+                                <div className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditStaffModal(u)}
+                                    title="Edit Details / Reset Password"
+                                    className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-foreground hover:bg-muted transition-colors shadow-sm"
+                                  >
+                                    <Edit3 className="size-3.5 text-accent" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  {!isPrimaryAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openDeleteStaffModal(u)}
+                                      title="Delete Staff Account"
+                                      className="inline-flex size-8 items-center justify-center rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-colors"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -2160,6 +3046,238 @@ For any assistance: +91 9601074848.`
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================================= */}
+      {/* ADD / EDIT STAFF USER MODAL (PORTAL) */}
+      {/* ========================================================================= */}
+      {mounted && staffModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-full max-w-lg max-h-[92vh] flex flex-col rounded-3xl border border-border bg-card shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border p-5 bg-secondary/30">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex size-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
+                  <UserPlus className="size-5" />
+                </span>
+                <div>
+                  <h3 className="font-heading text-base font-bold text-foreground">
+                    {editingStaffUser ? 'Edit Staff Account & Reset Password' : 'Add New Clinic Staff Account'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {editingStaffUser
+                      ? 'Update staff name, username, assigned role, or set a new password.'
+                      : 'Create new login credentials for receptionists or OPD front-desk staff.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStaffModalOpen(false)}
+                className="inline-flex size-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveStaffForm} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs">
+                {staffFormError && (
+                  <div className="flex items-center gap-2 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive animate-in fade-in">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>{staffFormError}</span>
+                  </div>
+                )}
+
+                {/* Staff Member Name */}
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Staff Member Full Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      required
+                      value={staffForm.name}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g. Pooja Patel (Reception Front Desk)"
+                      className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                </div>
+
+                {/* Login Username */}
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Login Username *
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      required
+                      value={staffForm.username}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, username: e.target.value }))}
+                      placeholder="e.g. reception_morning or staff_bhuyangdev"
+                      className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-3 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    This username will be used by the staff member to log into the Admin Portal.
+                  </p>
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    {editingStaffUser ? 'Reset Password (Leave blank to keep unchanged)' : 'Login Password *'}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <input
+                      type={showStaffPass ? 'text' : 'password'}
+                      required={!editingStaffUser}
+                      value={staffForm.password}
+                      onChange={(e) => setStaffForm((prev) => ({ ...prev, password: e.target.value }))}
+                      placeholder={editingStaffUser ? 'Enter new password only if changing' : 'Enter strong password (min 4 characters)'}
+                      className="h-11 w-full rounded-xl border border-input bg-background pl-10 pr-11 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffPass(!showStaffPass)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showStaffPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Role Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-1.5">
+                    Assigned Role &amp; Permission Level *
+                  </label>
+                  <select
+                    value={staffForm.role}
+                    onChange={(e) => setStaffForm((prev) => ({ ...prev, role: e.target.value }))}
+                    className="h-11 w-full rounded-xl border border-input bg-background px-3 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring font-medium"
+                  >
+                    <option value="staff">👤 Clinic Receptionist / Staff (OPD Appointments &amp; WhatsApp Messenger)</option>
+                    <option value="super_admin">👑 Super Admin / Director (Full Access to Master Tables &amp; Staff)</option>
+                  </select>
+                </div>
+
+                <div className="rounded-2xl bg-secondary/50 p-3.5 border border-border/60 text-[11px] text-muted-foreground space-y-1">
+                  <p className="font-bold text-foreground">Role Permissions Summary:</p>
+                  <p>• <strong>Staff</strong>: Can view/reschedule patient appointments &amp; send WhatsApp updates.</p>
+                  <p>• <strong>Super Admin</strong>: Has full access to Centers Master, ENT Concerns Master, Visitor Logs, and Staff Accounts.</p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2.5 border-t border-border p-4 bg-secondary/30">
+                <button
+                  type="button"
+                  onClick={() => setStaffModalOpen(false)}
+                  className="h-11 rounded-xl border border-border px-5 text-xs font-bold text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={staffFormLoading}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-xs font-bold text-accent-foreground shadow-md shadow-accent/25 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
+                >
+                  <Check className="size-4" />
+                  <span>{staffFormLoading ? 'Saving Staff Account...' : editingStaffUser ? 'Update Staff Account' : 'Create Staff User'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================================= */}
+      {/* DELETE STAFF USER CONFIRMATION MODAL (PORTAL) */}
+      {/* ========================================================================= */}
+      {mounted && deleteStaffModalOpen && deletingStaffUser && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-full max-w-md flex flex-col rounded-3xl border border-destructive/30 bg-card shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border p-5 bg-destructive/10">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex size-10 items-center justify-center rounded-xl bg-destructive/20 text-destructive">
+                  <Trash2 className="size-5" />
+                </span>
+                <div>
+                  <h3 className="font-heading text-base font-bold text-foreground">
+                    Delete Staff Account
+                  </h3>
+                  <p className="text-xs text-destructive font-medium">
+                    Permanent Action
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteStaffModalOpen(false)}
+                className="inline-flex size-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 sm:p-6 space-y-4 text-xs">
+              {deleteStaffError && (
+                <div className="flex items-center gap-2 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{deleteStaffError}</span>
+                </div>
+              )}
+
+              <p className="text-foreground leading-relaxed">
+                Are you sure you want to permanently delete the staff account for{' '}
+                <strong className="text-foreground font-bold">{deletingStaffUser.name}</strong> (@
+                <span className="font-mono font-bold text-accent">{deletingStaffUser.username}</span>)?
+              </p>
+
+              <div className="rounded-2xl bg-destructive/5 border border-destructive/20 p-3.5 text-[11px] text-destructive leading-relaxed">
+                ⚠️ Once deleted, this staff member will immediately lose all login access to the clinic dashboard.
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-border p-4 bg-secondary/30">
+              <button
+                type="button"
+                onClick={() => setDeleteStaffModalOpen(false)}
+                className="h-11 rounded-xl border border-border px-5 text-xs font-bold text-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteStaffLoading}
+                onClick={handleConfirmDeleteStaff}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-destructive px-6 text-xs font-bold text-white shadow-md shadow-destructive/25 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
+              >
+                <Trash2 className="size-4" />
+                <span>{deleteStaffLoading ? 'Deleting...' : 'Yes, Delete Account'}</span>
+              </button>
+            </div>
           </div>
         </div>,
         document.body
