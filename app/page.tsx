@@ -18,12 +18,10 @@ import { HealthLibrary } from "@/components/site/health-library";
 import { FinalCta } from "@/components/site/final-cta";
 import { Footer } from "@/components/site/footer";
 import { WhatsAppButton } from "@/components/site/whatsapp-button";
-import { VisitorTracker } from "@/components/site/visitor-tracker";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <VisitorTracker />
       <Navbar />
       <main>
         <Hero />

@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Source_Sans_3 } from "next/font/google";
 import Script from "next/script";
+import { VisitorTracker } from "@/components/site/visitor-tracker";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -77,6 +78,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="antialiased">
+        <VisitorTracker />
         {children}
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
