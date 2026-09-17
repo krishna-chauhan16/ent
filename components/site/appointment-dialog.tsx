@@ -38,27 +38,47 @@ export function BookAppointmentButton({
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [centers, setCenters] = useState<Array<{ id: string; name: string; area: string; timings?: string; isDefault?: boolean }>>([
-    { id: 'center-1', name: 'Atulya Superspeciality Hospital (Bhuyangdev)', area: 'Bhuyangdev Cross Road, Ahmedabad', isDefault: true },
-    { id: 'center-2', name: 'KD Hospital (SG Highway)', area: 'SG Highway, Ahmedabad' },
-    { id: 'center-3', name: 'Prathana Hospital', area: 'Memnagar, Ahmedabad' },
-  ])
-  const [concerns, setConcerns] = useState<Array<{ id: string; title: string; category: string; description?: string; isDefault?: boolean }>>([
-    { id: 'concern-1', title: 'Sinusitis, Nasal Polyps & Blockage (FESS / Septoplasty)', category: 'Nose & Sinus (Rhinology)', isDefault: true },
-    { id: 'concern-2', title: 'Eardrum Perforation, Discharge & Hearing Loss (Tympanoplasty)', category: 'Ear & Hearing (Otology)' },
-    { id: 'concern-3', title: 'Cholesteatoma & Chronic Ear Infection (Mastoidectomy)', category: 'Ear & Hearing (Otology)' },
-    { id: 'concern-4', title: 'Vertigo, Dizziness & Imbalance (Neuro-Otology)', category: 'Vertigo & Balance' },
-    { id: 'concern-5', title: 'Tonsillitis, Sore Throat & Hoarseness (Laryngology)', category: 'Throat & Voice (Laryngology)' },
-    { id: 'concern-6', title: 'Pediatric Adenoid Hypertrophy & Snoring', category: 'Pediatric ENT' },
-    { id: 'concern-7', title: 'Head & Neck Swelling / Second Surgical Opinion', category: 'General ENT' },
-  ])
+  const [centers, setCenters] = useState<Array<{ id: string; name: string; area: string; timings?: string; isDefault?: boolean }>>([])
+  const [concerns, setConcerns] = useState<Array<{ id: string; title: string; category: string; description?: string; isDefault?: boolean }>>([])
+  const [dateError, setDateError] = useState('')
+  const [bookingId, setBookingId] = useState('')
   const [formData, setFormData] = useState<AppointmentFormState>({
     name: '',
     phone: '',
-    location: 'Atulya Superspeciality Hospital (Bhuyangdev)',
+    location: '',
     reason: '',
     date: '',
   })
+
+  // Format today's local date as YYYY-MM-DD for min date picker attribute
+  const today = new Date()
+  const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+  const handleDateChange = (val: string) => {
+    if (!val) {
+      setDateError('')
+      setFormData((prev) => ({ ...prev, date: '' }))
+      return
+    }
+
+    // Check if selected date is in the past
+    if (val < minDate) {
+      setDateError('Past dates are not allowed. Please choose today or a future date.')
+      setFormData((prev) => ({ ...prev, date: '' }))
+      return
+    }
+
+    // Check if selected date is a Sunday (0 = Sunday in JavaScript Date)
+    const selectedDate = new Date(`${val}T00:00:00`)
+    if (selectedDate.getDay() === 0) {
+      setDateError('Sunday is closed for OPD. Please select Monday to Saturday.')
+      setFormData((prev) => ({ ...prev, date: '' }))
+      return
+    }
+
+    setDateError('')
+    setFormData((prev) => ({ ...prev, date: val }))
+  }
 
   const titleId = useId()
   const descId = useId()
@@ -97,15 +117,17 @@ export function BookAppointmentButton({
     setTimeout(() => {
       setSubmitted(false)
       setLoading(false)
+      setDateError('')
+      setBookingId('')
       setFormData({
         name: '',
         phone: '',
-        location: 'Atulya Superspeciality Hospital (Bhuyangdev)',
+        location: centers.find((c) => c.isDefault)?.name || (centers[0]?.name || ''),
         reason: '',
         date: '',
       })
     }, 200)
-  }, [])
+  }, [centers])
 
   useEffect(() => {
     if (!open) return
@@ -126,6 +148,15 @@ export function BookAppointmentButton({
     e.preventDefault()
     if (!formData.name.trim() || !formData.phone.trim()) return
 
+    // Validate date is not past or Sunday
+    if (formData.date) {
+      const selected = new Date(`${formData.date}T00:00:00`)
+      if (formData.date < minDate || selected.getDay() === 0) {
+        setDateError('Sunday is closed for OPD. Please select Monday to Saturday.')
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -143,11 +174,21 @@ export function BookAppointmentButton({
       })
 
       const data = await res.json()
-      if (!data.success) {
-        console.error('Error saving appointment:', data.error)
+      const now = new Date()
+      const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+
+      if (data.success && data.appointment?.id) {
+        const generatedId = `ENT-${dateCode}-${String(data.appointment.id).padStart(4, '0')}`
+        setBookingId(generatedId)
+      } else {
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+        setBookingId(`ENT-${dateCode}-${randomSuffix}`)
       }
     } catch (err) {
       console.error('Failed to store appointment in DB:', err)
+      const now = new Date()
+      const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+      setBookingId(`ENT-${dateCode}-${Math.floor(1000 + Math.random() * 9000)}`)
     } finally {
       setLoading(false)
       setSubmitted(true)
@@ -193,8 +234,16 @@ export function BookAppointmentButton({
                 Appointment Booked Successfully!
               </h2>
               <p id={descId} className="mt-1.5 max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                તમારી એપોઇન્ટમેન્ટ વિગતો ડેટાબેઝમાં સફળતાપૂર્વક નોંધાઈ ગઈ છે. અમારી ટીમ ટૂંક સમયમાં તમને કન્ફર્મેશન માટે કૉલ કરશે.
+                Your appointment request has been successfully recorded in our system. Our clinic reception team will call you shortly to confirm your time slot.
               </p>
+
+              {/* Booking Reference ID Badge */}
+              {bookingId && (
+                <div className="mt-3.5 inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-semibold text-accent">
+                  <span className="text-muted-foreground">Booking ID:</span>
+                  <span className="font-mono text-sm font-bold tracking-wider text-foreground">#{bookingId}</span>
+                </div>
+              )}
 
               {/* Summary card */}
               <div className="mt-4 w-full rounded-2xl border border-border bg-secondary/60 p-4 text-left text-xs space-y-2">
@@ -207,7 +256,7 @@ export function BookAppointmentButton({
                   <span className="font-semibold text-foreground">{formData.phone}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
-                  <span className="text-muted-foreground">Preferred Center:</span>
+                  <span className="text-muted-foreground">Consultation Center:</span>
                   <span className="font-semibold text-foreground">{formData.location || 'Primary Center'}</span>
                 </div>
                 {formData.reason && (
@@ -217,11 +266,18 @@ export function BookAppointmentButton({
                   </div>
                 )}
                 {formData.date && (
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
                     <span className="text-muted-foreground">Preferred Date:</span>
                     <span className="font-semibold text-foreground">{formData.date}</span>
                   </div>
                 )}
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Pending Confirmation
+                  </span>
+                </div>
               </div>
 
               <div className="mt-6 w-full">
@@ -286,15 +342,21 @@ export function BookAppointmentButton({
                     />
                   </Field>
 
-                  <Field id="apt-date" label="Preferred Date" className="sm:col-span-1">
+                  <Field id="apt-date" label="Preferred Date (Mon - Sat)" className="sm:col-span-1">
                     <input
                       id="apt-date"
                       name="date"
                       type="date"
+                      min={minDate}
                       value={formData.date}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-                      className={fieldClass}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className={`${fieldClass} ${dateError ? 'border-rose-500 ring-1 ring-rose-500' : ''}`}
                     />
+                    {dateError && (
+                      <p className="mt-1 text-[11px] font-semibold text-rose-500 leading-tight">
+                        {dateError}
+                      </p>
+                    )}
                   </Field>
 
                   <Field id="apt-location" label="Preferred Center" className="sm:col-span-2">

@@ -117,6 +117,14 @@ function parseUserAgentInfo(ua?: string): {
   return { browser, os, device, label }
 }
 
+function formatBookingRef(apt: { id: string | number; createdAt?: string }): string {
+  const d = apt.createdAt ? new Date(apt.createdAt) : new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `ENT-${yyyy}${mm}${dd}-${String(apt.id).padStart(4, '0')}`
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [username, setUsername] = useState('')
@@ -826,10 +834,12 @@ export default function AdminPage() {
 
   // WhatsApp Message Generator
   const sendWhatsAppConfirmation = (apt: Appointment) => {
+    const bookingId = formatBookingRef(apt)
     const msg = `Dear ${apt.name},
 
 Your ENT Consultation with Dr. Vaidik Chauhan, MS (ENT) is CONFIRMED.
 
+🏷️ Booking ID: #${bookingId}
 📅 Date: ${apt.date}
 🏥 Hospital: ${apt.location}
 🩺 Concern: ${apt.reason}
@@ -1022,8 +1032,9 @@ For any assistance: +91 9601074848.`
   // Export to CSV
   function exportCSV() {
     if (appointments.length === 0) return
-    const headers = ['Sr. No.', 'Patient Name', 'Phone', 'Hospital', 'Concern', 'Date', 'Status', 'Submitted At']
+    const headers = ['Booking ID', 'Sr. No.', 'Patient Name', 'Phone', 'Hospital', 'Concern', 'Date', 'Status', 'Submitted At']
     const rows = appointments.map((a, idx) => [
+      `"#${formatBookingRef(a)}"`,
       `"${idx + 1}"`,
       `"${a.name}"`,
       `"${a.phone}"`,
@@ -1046,8 +1057,11 @@ For any assistance: +91 9601074848.`
 
   // Filtered appointments
   const filteredAppointments = appointments.filter((a) => {
+    const bookingCode = formatBookingRef(a).toLowerCase()
     const matchesSearch =
       searchQuery === '' ||
+      bookingCode.includes(searchQuery.toLowerCase()) ||
+      String(a.id).includes(searchQuery) ||
       a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.phone.includes(searchQuery) ||
       a.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1608,7 +1622,7 @@ For any assistance: +91 9601074848.`
                   <table className="w-full text-left text-xs">
                     <thead className="bg-secondary/70 text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border">
                       <tr>
-                        <th className="px-4 py-3.5 font-bold w-16">Sr. No.</th>
+                        <th className="px-4 py-3.5 font-bold whitespace-nowrap">Booking ID</th>
                         <th className="px-5 py-3.5 font-bold">Patient Details</th>
                         <th className="px-5 py-3.5 font-bold">Hospital &amp; Concern</th>
                         <th className="px-5 py-3.5 font-bold">Appointment Date</th>
@@ -1617,11 +1631,13 @@ For any assistance: +91 9601074848.`
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {filteredAppointments.map((apt, index) => (
+                      {filteredAppointments.map((apt) => (
                         <tr key={apt.id} className="hover:bg-muted/40 transition-colors">
-                          {/* Sequence Number */}
-                          <td className="px-4 py-4 font-mono font-bold text-foreground">
-                            {index + 1}
+                          {/* Booking Reference ID */}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/25 px-2.5 py-1 font-mono text-xs font-bold text-accent">
+                              #{formatBookingRef(apt)}
+                            </span>
                           </td>
 
                           {/* Patient */}
