@@ -79,7 +79,7 @@ export function BookAppointmentButton({
           }
         }
       })
-      .catch(() => {})
+      .catch(() => { })
 
     // 2. Fetch Active ENT Concerns
     fetch('/api/concerns')
@@ -89,7 +89,7 @@ export function BookAppointmentButton({
           setConcerns(data.concerns)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const close = useCallback(() => {

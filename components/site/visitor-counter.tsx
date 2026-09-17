@@ -42,6 +42,7 @@ export function VisitorCounter({ className = '' }: { className?: string }) {
           body: JSON.stringify({
             path: fullUrl,
             clientIp: publicIp || undefined,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
           }),
           cache: 'no-store',
         })

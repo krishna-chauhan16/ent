@@ -41,6 +41,8 @@ import {
   Globe,
   Compass,
   Laptop,
+  Smartphone,
+  Tablet,
   KeyRound,
   Crown,
   UserCheck,
@@ -49,6 +51,71 @@ import {
 } from 'lucide-react'
 import { site } from '@/lib/site'
 import type { Appointment, HospitalCenter, ENTConcern, VisitorLog, AdminUser } from '@/lib/types'
+
+function parseUserAgentInfo(ua?: string): {
+  browser: string
+  os: string
+  device: 'mobile' | 'tablet' | 'desktop' | 'bot'
+  label: string
+} {
+  if (!ua || !ua.trim()) {
+    return { browser: 'Web Browser', os: 'Desktop/Mobile', device: 'desktop', label: 'Direct Browser Client' }
+  }
+
+  const clean = ua.trim()
+
+  // 1. Detect OS
+  let os = 'Unknown OS'
+  if (/windows nt 10/i.test(clean)) os = 'Windows 10/11'
+  else if (/windows nt 6\.3/i.test(clean)) os = 'Windows 8.1'
+  else if (/windows nt 6\.1/i.test(clean)) os = 'Windows 7'
+  else if (/windows/i.test(clean)) os = 'Windows'
+  else if (/iphone/i.test(clean)) os = 'iPhone (iOS)'
+  else if (/ipad/i.test(clean)) os = 'iPadOS'
+  else if (/android/i.test(clean)) {
+    const match = clean.match(/android\s+([\d.]+)/i)
+    os = match ? `Android ${match[1]}` : 'Android'
+  } else if (/mac os x/i.test(clean)) {
+    os = 'macOS'
+  } else if (/linux/i.test(clean)) {
+    os = 'Linux'
+  } else if (/cros/i.test(clean)) {
+    os = 'ChromeOS'
+  }
+
+  // 2. Detect Device Type
+  let device: 'mobile' | 'tablet' | 'desktop' | 'bot' = 'desktop'
+  if (/bot|crawler|spider|googlebot|bingbot|yandex/i.test(clean)) {
+    device = 'bot'
+  } else if (/ipad|tablet|(android(?!.*mobile))/i.test(clean)) {
+    device = 'tablet'
+  } else if (/mobi|iphone|ipod|android/i.test(clean)) {
+    device = 'mobile'
+  }
+
+  // 3. Detect Browser
+  let browser = 'Browser'
+  if (/edg\//i.test(clean)) {
+    const m = clean.match(/edg\/([\d.]+)/i)
+    browser = `Edge${m ? ` ${m[1].split('.')[0]}` : ''}`
+  } else if (/opr\/|opera/i.test(clean)) {
+    browser = 'Opera'
+  } else if (/samsungbrowser/i.test(clean)) {
+    browser = 'Samsung Internet'
+  } else if (/chrome|crios/i.test(clean) && !/edg\//i.test(clean)) {
+    const m = clean.match(/(?:chrome|crios)\/([\d.]+)/i)
+    browser = `Chrome${m ? ` ${m[1].split('.')[0]}` : ''}`
+  } else if (/firefox|fxios/i.test(clean)) {
+    const m = clean.match(/(?:firefox|fxios)\/([\d.]+)/i)
+    browser = `Firefox${m ? ` ${m[1].split('.')[0]}` : ''}`
+  } else if (/safari/i.test(clean) && !/chrome|crios|android/i.test(clean)) {
+    browser = 'Safari'
+  }
+
+  const label = `${browser} • ${os}`
+
+  return { browser, os, device, label }
+}
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -2148,17 +2215,24 @@ For any assistance: +91 9601074848.`
                                 </span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-4 max-w-xs text-muted-foreground truncate" title={log.userAgent}>
-                              <div className="flex items-center gap-1.5 truncate">
-                                <Laptop className="size-3.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate text-[11px]">
-                                  {log.userAgent
-                                    ? log.userAgent.length > 50
-                                      ? `${log.userAgent.slice(0, 50)}...`
-                                      : log.userAgent
-                                    : 'Direct Browser Client'}
-                                </span>
-                              </div>
+                            <td className="py-3.5 px-4 max-w-xs text-muted-foreground" title={log.userAgent || 'Direct Browser'}>
+                              {(() => {
+                                const info = parseUserAgentInfo(log.userAgent)
+                                return (
+                                  <div className="flex items-center gap-1.5">
+                                    {info.device === 'mobile' ? (
+                                      <Smartphone className="size-3.5 shrink-0 text-amber-500" />
+                                    ) : info.device === 'tablet' ? (
+                                      <Tablet className="size-3.5 shrink-0 text-indigo-500" />
+                                    ) : (
+                                      <Laptop className="size-3.5 shrink-0 text-cyan-500" />
+                                    )}
+                                    <span className="truncate text-xs font-medium text-foreground">
+                                      {info.label}
+                                    </span>
+                                  </div>
+                                )
+                              })()}
                             </td>
                           </tr>
                         ))}

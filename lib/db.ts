@@ -5,118 +5,7 @@ import type { HospitalCenter, ENTConcern, Appointment, VisitorLog, DbSchema, Adm
 
 export * from './types'
 
-const initialCenters: HospitalCenter[] = [
-  {
-    id: '1',
-    name: 'Atulya Superspeciality Hospital (Bhuyangdev)',
-    area: '2nd Floor, Elite Magnum, Bhuyangdev Cross Road, Sola Road, Ghatlodiya, Ahmedabad',
-    timings: 'Mon - Sat: 10:00 AM - 01:00 PM & 05:00 PM - 08:00 PM',
-    tag: 'Primary Center (Director & Head)',
-    isActive: true,
-    isDefault: true,
-  },
-  {
-    id: '2',
-    name: 'KD Hospital (SG Highway)',
-    area: 'Vaishnodevi Circle, SG Highway, Ahmedabad',
-    timings: 'Visiting Consultant / By Appointment',
-    tag: 'Visiting Consultant',
-    isActive: true,
-    isDefault: false,
-  },
-  {
-    id: '3',
-    name: 'Prathana Hospital',
-    area: 'Near Helmet Cross Roads, Memnagar, Ahmedabad',
-    timings: 'Visiting Consultant / By Appointment',
-    tag: 'Visiting Consultant',
-    isActive: true,
-    isDefault: false,
-  },
-]
 
-const initialConcerns: ENTConcern[] = [
-  {
-    id: '1',
-    title: 'Sinusitis, Nasal Polyps & Blockage (FESS / Septoplasty)',
-    category: 'Nose & Sinus (Rhinology)',
-    description: 'Deviated Nasal Septum (DNS), Functional Endoscopic Sinus Surgery (FESS), Turbinate Reduction, Polyp Clearance.',
-    commonSymptoms: 'Nasal Blockage, Facial Heaviness, Headache, Post-Nasal Drip, Loss of Smell',
-    isActive: true,
-    isDefault: true,
-    sortOrder: 1,
-  },
-  {
-    id: '2',
-    title: 'Ear Discharge, Hearing Loss & Eardrum Perforation (Tympanoplasty)',
-    category: 'Ear & Hearing (Otology)',
-    description: 'CSOM, Cholesteatoma, Mastoidectomy, Stapedotomy, Micro-ear surgery, Eardrum Repair.',
-    commonSymptoms: 'Ear Discharge, Ear Ache, Decreased Hearing, Eardrum Hole, Tinnitus (Ringing Ear)',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 2,
-  },
-  {
-    id: '3',
-    title: 'Vertigo, Dizziness & Balance Disorders',
-    category: 'Vertigo & Balance',
-    description: 'BPPV, Vestibular Neuritis, Meniere\'s Disease, Canalith Repositioning Maneuvers.',
-    commonSymptoms: 'Spinning Sensation, Imbalance while walking, Nausea, Sudden Vertigo Attacks',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 3,
-  },
-  {
-    id: '4',
-    title: 'Throat, Tonsils, Adenoids & Voice Issues (Microlaryngeal Surgery)',
-    category: 'Throat & Voice (Laryngology)',
-    description: 'Recurrent Tonsillitis, Adenoid Hypertrophy, Vocal Cord Polyps, Hoarseness, Coblation Tonsillectomy.',
-    commonSymptoms: 'Frequent Sore Throat, Difficulty Swallowing, Hoarse Voice, Snoring in Children',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 4,
-  },
-  {
-    id: '5',
-    title: 'Pediatric ENT Checkup & Airway Obstruction',
-    category: 'Pediatric ENT',
-    description: 'Childhood snoring, mouth breathing, recurrent ear infections, foreign body removal, tongue tie release.',
-    commonSymptoms: 'Mouth Breathing during sleep, Night Snoring, Restless Sleep, Ear Infections',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 5,
-  },
-  {
-    id: '6',
-    title: 'Head & Neck Swellings, Thyroid & Skull Base Consultation',
-    category: 'Head & Neck / Skull Base',
-    description: 'Salivary Gland (Parotid/Submandibular) tumors, Thyroid nodules, CSF Rhinorrhea leak repair, Skull base lesions.',
-    commonSymptoms: 'Neck Lumps, Salivary Gland Swelling, Clear fluid drainage from nose, Neck Pain',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 6,
-  },
-  {
-    id: '7',
-    title: 'Snoring & Obstructive Sleep Apnea (OSA)',
-    category: 'Sleep & Airway',
-    description: 'Sleep endoscopy, palate & pharyngeal airway surgery, surgical management of obstructive sleep apnea.',
-    commonSymptoms: 'Loud Snoring, Choking at night, Excessive daytime sleepiness, Morning headaches',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 7,
-  },
-  {
-    id: '8',
-    title: 'Second Surgical Opinion / General ENT Consultation',
-    category: 'General ENT & Second Opinion',
-    description: 'Comprehensive ENT evaluation, review of previous CT/MRI scans, unbiased surgical opinion & guidance.',
-    commonSymptoms: 'Previous diagnosis review, non-resolving ENT symptoms, pre-surgery evaluation',
-    isActive: true,
-    isDefault: false,
-    sortOrder: 8,
-  },
-]
 
 // ----------------------------------------------------
 // HOSPITAL CENTERS MASTER OPERATIONS (DIRECT DATABASE)
@@ -175,7 +64,7 @@ export async function getAllCenters(onlyActive = false): Promise<HospitalCenter[
     }
   }
 
-  return onlyActive ? initialCenters.filter((c) => c.isActive) : initialCenters
+  return []
 }
 
 export async function addCenter(data: {
@@ -451,7 +340,7 @@ export async function getAllConcerns(onlyActive = false): Promise<ENTConcern[]> 
     }
   }
 
-  return onlyActive ? initialConcerns.filter((c) => c.isActive) : initialConcerns
+  return []
 }
 
 export async function addConcern(data: {
@@ -1346,25 +1235,6 @@ export async function validateAdminCredentials(username: string, password: strin
     }
   }
 
-  // Initial fallback if DB is still initializing
-  if ((cleanUser === 'admin' || cleanUser === 'drvaidik') && cleanPass === 'drvaidik2026') {
-    return {
-      id: '1',
-      username: 'admin',
-      name: 'Dr. Vaidik Chauhan',
-      role: 'super_admin',
-    }
-  }
-
-  if ((cleanUser === 'staff' || cleanUser === 'reception') && cleanPass === 'staff123') {
-    return {
-      id: '2',
-      username: 'staff',
-      name: 'Clinic Reception Staff',
-      role: 'staff',
-    }
-  }
-
   return null
 }
 
@@ -1507,20 +1377,7 @@ export async function getAllAdminUsers(): Promise<AdminUser[]> {
     }
   }
 
-  return [
-    {
-      id: '1',
-      username: 'admin',
-      name: 'Dr. Vaidik Chauhan',
-      role: 'super_admin',
-    },
-    {
-      id: '2',
-      username: 'staff',
-      name: 'Clinic Reception Staff',
-      role: 'staff',
-    },
-  ]
+  return []
 }
 
 export async function createAdminUser(data: {

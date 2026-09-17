@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     let ip = extractClientIp(req)
-    const userAgent = req.headers.get('user-agent') || ''
+    let userAgent = req.headers.get('user-agent') || ''
     const referer = req.headers.get('referer') || ''
 
     let path = referer || '/'
@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
           if (rawClientIp && rawClientIp.length <= 45) {
             ip = rawClientIp
           }
+        }
+        if (body.userAgent && typeof body.userAgent === 'string' && body.userAgent.trim()) {
+          userAgent = body.userAgent.trim()
         }
       }
     } catch {
