@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { CalendarCheck, CheckCircle2, Phone, X, MessageCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { CheckCircle2, X, ArrowRight, Loader2 } from 'lucide-react'
 import { site } from '@/lib/site'
 
 interface BookAppointmentButtonProps {
@@ -122,21 +122,6 @@ export function BookAppointmentButton({
     }
   }, [open, close])
 
-  const generateWhatsAppUrl = (data: AppointmentFormState) => {
-    const message = `Hello Dr. Vaidik Chauhan,
-
-I would like to book an ENT Consultation Appointment:
-• Patient Name: ${data.name.trim()}
-• Mobile Number: ${data.phone.trim()}
-• Preferred Hospital: ${data.location}
-• ENT Concern: ${data.reason || 'General ENT Consultation'}
-• Preferred Date: ${data.date || 'Earliest Available'}
-
-Please confirm my appointment slot.`
-
-    return `https://wa.me/919601074848?text=${encodeURIComponent(message)}`
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!formData.name.trim() || !formData.phone.trim()) return
@@ -144,31 +129,28 @@ Please confirm my appointment slot.`
     setLoading(true)
 
     try {
-      // 1. Record lead asynchronously in Database
-      await fetch('/api/leads', {
+      // 1. Direct entry in Database (appointments table)
+      const res = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name.trim(),
           phone: formData.phone.trim(),
-          location: formData.location,
-          reason: formData.reason,
-          date: formData.date,
+          location: formData.location || (centers[0]?.name || 'Atulya Superspeciality Hospital (Bhuyangdev)'),
+          reason: formData.reason || 'General ENT Consultation',
+          date: formData.date || '',
         }),
       })
+
+      const data = await res.json()
+      if (!data.success) {
+        console.error('Error saving appointment:', data.error)
+      }
     } catch (err) {
-      console.error('Failed to store appointment in DB, continuing WhatsApp redirect', err)
-    }
-
-    setLoading(false)
-    setSubmitted(true)
-
-    // 2. Automatically trigger WhatsApp redirect
-    const waUrl = generateWhatsAppUrl(formData)
-    try {
-      window.open(waUrl, '_blank')
-    } catch {
-      window.location.href = waUrl
+      console.error('Failed to store appointment in DB:', err)
+    } finally {
+      setLoading(false)
+      setSubmitted(true)
     }
   }
 
@@ -204,54 +186,51 @@ Please confirm my appointment slot.`
 
           {submitted ? (
             <div className="flex flex-col items-center py-3 text-center">
-              <span className="mb-3 inline-flex size-14 items-center justify-center rounded-full bg-[#25D366]/15 text-[#25D366] shadow-sm">
+              <span className="mb-3 inline-flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shadow-sm">
                 <CheckCircle2 className="size-8" />
               </span>
               <h2 id={titleId} className="text-xl sm:text-2xl font-bold text-foreground">
-                Request Sent &amp; Recorded!
+                Appointment Booked Successfully!
               </h2>
               <p id={descId} className="mt-1.5 max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Your appointment request has been saved in our system and sent to Dr. Vaidik Chauhan on WhatsApp for slot confirmation.
+                તમારી એપોઇન્ટમેન્ટ વિગતો ડેટાબેઝમાં સફળતાપૂર્વક નોંધાઈ ગઈ છે. અમારી ટીમ ટૂંક સમયમાં તમને કન્ફર્મેશન માટે કૉલ કરશે.
               </p>
 
               {/* Summary card */}
-              <div className="mt-4 w-full rounded-2xl border border-border bg-secondary/60 p-4 text-left text-xs space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Patient:</span>
+              <div className="mt-4 w-full rounded-2xl border border-border bg-secondary/60 p-4 text-left text-xs space-y-2">
+                <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
+                  <span className="text-muted-foreground">Patient Name:</span>
                   <span className="font-semibold text-foreground">{formData.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Mobile:</span>
+                <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
+                  <span className="text-muted-foreground">Contact Number:</span>
                   <span className="font-semibold text-foreground">{formData.phone}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Center:</span>
-                  <span className="font-semibold text-foreground">{formData.location}</span>
+                <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
+                  <span className="text-muted-foreground">Preferred Center:</span>
+                  <span className="font-semibold text-foreground">{formData.location || 'Primary Center'}</span>
                 </div>
                 {formData.reason && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Concern:</span>
+                  <div className="flex justify-between items-center border-b border-border/50 pb-1.5">
+                    <span className="text-muted-foreground">ENT Concern:</span>
                     <span className="font-semibold text-accent">{formData.reason}</span>
+                  </div>
+                )}
+                {formData.date && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Preferred Date:</span>
+                    <span className="font-semibold text-foreground">{formData.date}</span>
                   </div>
                 )}
               </div>
 
-              <div className="mt-6 flex flex-col sm:flex-row gap-2.5 w-full">
-                <a
-                  href={generateWhatsAppUrl(formData)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-md transition-transform hover:scale-[1.02]"
-                >
-                  <MessageCircle className="size-4" />
-                  Open WhatsApp Again
-                </a>
+              <div className="mt-6 w-full">
                 <button
                   type="button"
                   onClick={close}
-                  className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-secondary px-5 text-sm font-semibold text-foreground hover:bg-muted"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-full bg-accent px-6 text-sm font-bold text-accent-foreground shadow-md transition-transform hover:scale-[1.02]"
                 >
-                  Done
+                  Done &amp; Close
                 </button>
               </div>
             </div>
