@@ -269,15 +269,15 @@ export default function AdminPage() {
     }
   }, [])
 
-  // Fetch Dashboard Data
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  // Fetch Dashboard Data (supports silent background auto-refresh)
+  const fetchData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
     try {
       const [aptsRes, centersRes, concernsRes, visitorsRes] = await Promise.all([
-        fetch('/api/appointments'),
-        fetch('/api/centers?all=true'),
-        fetch('/api/concerns?all=true'),
-        fetch('/api/visitors?logs=true'),
+        fetch('/api/appointments', { cache: 'no-store' }),
+        fetch('/api/centers?all=true', { cache: 'no-store' }),
+        fetch('/api/concerns?all=true', { cache: 'no-store' }),
+        fetch('/api/visitors?logs=true', { cache: 'no-store' }),
       ])
       const aptsData = await aptsRes.json()
       const centersData = await centersRes.json()
@@ -300,7 +300,7 @@ export default function AdminPage() {
 
       // Fetch Staff Users if Super Admin
       try {
-        const usersRes = await fetch('/api/auth/users')
+        const usersRes = await fetch('/api/auth/users', { cache: 'no-store' })
         const usersData = await usersRes.json()
         if (usersData.success && usersData.users) {
           setStaffUsers(usersData.users)
@@ -311,15 +311,17 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to load dashboard data', err)
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchData()
-      // Auto refresh every 30 seconds
-      const timer = setInterval(fetchData, 30000)
+      fetchData(false)
+      // Auto refresh every 10 seconds silently
+      const timer = setInterval(() => {
+        fetchData(true)
+      }, 10000)
       return () => clearInterval(timer)
     }
   }, [isAuthenticated, fetchData])
@@ -1230,11 +1232,17 @@ For any assistance: +91 9601074848.`
                 <span>Clinic Receptionist / Staff</span>
               </span>
             )}
+            {/* Live Sync 10s Indicator */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+              <span>Live Sync (10s)</span>
+            </div>
+
             <button
               type="button"
-              onClick={fetchData}
+              onClick={() => fetchData(false)}
               disabled={loading}
-              title="Refresh Data"
+              title="Refresh Data Now"
               className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted"
             >
               <RefreshCw className={`size-4 ${loading ? 'animate-spin text-accent' : ''}`} />
