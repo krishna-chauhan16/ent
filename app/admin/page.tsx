@@ -326,6 +326,20 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, fetchData])
 
+  const handleDeleteVisitorLog = async (id?: number) => {
+    if (!id) return
+    if (!confirm('Are you sure you want to delete this visitor log?')) return
+    try {
+      const res = await fetch(`/api/visitors?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        setVisitorLogs((prev) => prev.filter((l) => l.id !== id))
+      }
+    } catch (err) {
+      console.error('Failed to delete visitor log:', err)
+    }
+  }
+
   // Center Master Handlers
   function openAddCenterModal() {
     setEditingCenter(null)
@@ -2189,11 +2203,16 @@ For any assistance: +91 9601074848.`
                         <th className="py-3.5 px-4">Visited Path</th>
                         <th className="py-3.5 px-4">Visited Timestamp</th>
                         <th className="py-3.5 px-4">Device / User Agent</th>
+                        <th className="py-3.5 px-4 text-center w-14">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {visitorLogs
                         .filter((log) => {
+                          // Ignore /admin and /api visits
+                          if (log.path?.toLowerCase().includes('/admin') || log.path?.toLowerCase().startsWith('/api')) {
+                            return false
+                          }
                           if (!visitorSearch.trim()) return true
                           const q = visitorSearch.toLowerCase()
                           return (
@@ -2203,63 +2222,84 @@ For any assistance: +91 9601074848.`
                             log.date?.includes(q)
                           )
                         })
-                        .map((log, index) => (
-                          <tr key={log.id || index} className="hover:bg-muted/40 transition-colors">
-                            <td className="py-3.5 px-4 font-mono font-bold text-foreground">
-                              {index + 1}
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/25 px-3 py-1 font-mono text-[11px] font-bold text-accent">
-                                <Globe className="size-3" />
-                                {log.ip || '127.0.0.1'}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 max-w-[240px]">
-                              <a
-                                href={log.path && log.path.startsWith('http') ? log.path : '#'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-secondary hover:bg-muted/80 px-2.5 py-1 font-mono text-[11px] font-bold text-foreground max-w-full truncate transition-colors"
-                                title={log.path || '/'}
-                              >
-                                <Compass className="size-3 text-muted-foreground shrink-0" />
-                                <span className="truncate">{log.path || '/'}</span>
-                              </a>
-                            </td>
-                            <td className="py-3.5 px-4 text-muted-foreground whitespace-nowrap">
-                              <div className="flex items-center gap-1.5 font-medium text-foreground">
-                                <Clock className="size-3.5 text-accent shrink-0" />
-                                <span>
-                                  {log.visitedAt
-                                    ? new Date(log.visitedAt).toLocaleString('en-IN', {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'medium',
-                                      })
-                                    : log.date || 'Today'}
+                        .map((log, index) => {
+                          const isHome = !log.path || log.path === '/' || log.path === 'https://drvaidikent.com/' || log.path === 'https://drvaidikent.com'
+                          const targetHref = isHome ? 'https://drvaidikent.com' : log.path.startsWith('http') ? log.path : `https://drvaidikent.com${log.path}`
+                          const displayPath = isHome ? 'https://drvaidikent.com/' : log.path.startsWith('http') ? log.path : `https://drvaidikent.com${log.path}`
+
+                          return (
+                            <tr key={log.id || index} className="hover:bg-muted/40 transition-colors">
+                              <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                                {index + 1}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/25 px-3 py-1 font-mono text-[11px] font-bold text-accent">
+                                  <Globe className="size-3" />
+                                  {log.ip || '127.0.0.1'}
                                 </span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4 max-w-xs text-muted-foreground" title={log.userAgent || 'Direct Browser'}>
-                              {(() => {
-                                const info = parseUserAgentInfo(log.userAgent)
-                                return (
-                                  <div className="flex items-center gap-1.5">
-                                    {info.device === 'mobile' ? (
-                                      <Smartphone className="size-3.5 shrink-0 text-amber-500" />
-                                    ) : info.device === 'tablet' ? (
-                                      <Tablet className="size-3.5 shrink-0 text-indigo-500" />
-                                    ) : (
-                                      <Laptop className="size-3.5 shrink-0 text-cyan-500" />
-                                    )}
-                                    <span className="truncate text-xs font-medium text-foreground">
-                                      {info.label}
+                              </td>
+                              <td className="py-3.5 px-4 max-w-[280px]">
+                                <a
+                                  href={targetHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-secondary hover:bg-muted/80 px-2.5 py-1 font-mono text-[11px] font-bold text-foreground max-w-full truncate transition-colors"
+                                  title={displayPath}
+                                >
+                                  <Compass className="size-3 text-muted-foreground shrink-0" />
+                                  <span className="truncate">{displayPath}</span>
+                                  {isHome && (
+                                    <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase shrink-0">
+                                      Home
                                     </span>
-                                  </div>
-                                )
-                              })()}
-                            </td>
-                          </tr>
-                        ))}
+                                  )}
+                                </a>
+                              </td>
+                              <td className="py-3.5 px-4 text-muted-foreground whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                                  <Clock className="size-3.5 text-accent shrink-0" />
+                                  <span>
+                                    {log.visitedAt
+                                      ? new Date(log.visitedAt).toLocaleString('en-IN', {
+                                          dateStyle: 'medium',
+                                          timeStyle: 'medium',
+                                        })
+                                      : log.date || 'Today'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 max-w-xs text-muted-foreground" title={log.userAgent || 'Direct Browser'}>
+                                {(() => {
+                                  const info = parseUserAgentInfo(log.userAgent)
+                                  return (
+                                    <div className="flex items-center gap-1.5">
+                                      {info.device === 'mobile' ? (
+                                        <Smartphone className="size-3.5 shrink-0 text-amber-500" />
+                                      ) : info.device === 'tablet' ? (
+                                        <Tablet className="size-3.5 shrink-0 text-indigo-500" />
+                                      ) : (
+                                        <Laptop className="size-3.5 shrink-0 text-cyan-500" />
+                                      )}
+                                      <span className="truncate text-xs font-medium text-foreground">
+                                        {info.label}
+                                      </span>
+                                    </div>
+                                  )
+                                })()}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVisitorLog(log.id)}
+                                  title="Delete this log"
+                                  className="inline-flex items-center justify-center size-7 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
                     </tbody>
                   </table>
                 </div>

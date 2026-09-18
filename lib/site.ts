@@ -12,7 +12,7 @@ export const site = {
     publicationsCount: '14+',
     phoneDisplay: '+91 9601074848',
     phoneHref: 'tel:+919601074848',
-    email: 'drvc2527@gmail.com',
+    email: 'contact@drvaidikent.com',
     specialties: ['Otology', 'Rhinology', 'Skull Base Surgery', 'Endoscopic Sinus Surgery (FESS)', 'Tympanoplasty'],
   },
   hospital: {
@@ -25,7 +25,7 @@ export const site = {
     landlineDisplay: '09727579000',
     landlineHref: 'tel:+919727579000',
     whatsapp: 'https://wa.me/919601074848?text=Hello%20Dr.%20Vaidik%20Chauhan,%20I%20would%20like%20to%20consult%20for%20an%20ENT%20appointment.',
-    email: 'drvc2527@gmail.com',
+    email: 'contact@drvaidikent.com',
     mapUrl: 'https://www.google.com/maps?q=Atulya+Superspeciality+Hospital+Bhuyangdev+Ahmedabad&output=embed',
   },
 } as const

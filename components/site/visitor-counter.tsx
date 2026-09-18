@@ -17,53 +17,8 @@ export function VisitorCounter({ className = '' }: { className?: string }) {
   useEffect(() => {
     let isMounted = true
 
-    // Function to record the visit (IP, Date, Full URL) on page load and receive live stats
-    async function recordVisitOnPageLoad() {
-      try {
-        let publicIp = ''
-        try {
-          // Attempt to fetch public dynamic IP (with 1.5s timeout for fast fallback)
-          const ipRes = await fetch('https://api.ipify.org?format=json', {
-            signal: AbortSignal.timeout ? AbortSignal.timeout(1500) : undefined,
-          }).catch(() => null)
-          if (ipRes && ipRes.ok) {
-            const ipData = await ipRes.json().catch(() => null)
-            if (ipData?.ip) publicIp = String(ipData.ip).trim()
-          }
-        } catch {
-          // Silent fallback to server-side extraction
-        }
-
-        const fullUrl = typeof window !== 'undefined' ? window.location.href : '/'
-
-        const res = await fetch('/api/visitors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            path: fullUrl,
-            clientIp: publicIp || undefined,
-            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-          }),
-          cache: 'no-store',
-        })
-
-        const data = await res.json()
-        if (isMounted && data?.success && data?.stats) {
-          const total = Number(data.stats.visitorsTotal) || 0
-          const today = Number(data.stats.visitorsToday) || 0
-          setStats({ total, todayCount: today })
-        }
-      } catch (err) {
-        console.error('Error logging visit:', err)
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    // Function for periodic background refresh (fetches latest dynamic count)
-    async function refreshStatsInBackground() {
+    // Function to fetch live visitor stats
+    async function fetchStats() {
       try {
         const res = await fetch('/api/visitors', {
           method: 'GET',
@@ -76,15 +31,19 @@ export function VisitorCounter({ className = '' }: { className?: string }) {
           setStats({ total, todayCount: today })
         }
       } catch (err) {
-        console.error('Error refreshing visitor stats:', err)
+        console.error('Error fetching visitor stats:', err)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    // Record visit with IP and Current Date immediately on page load
-    recordVisitOnPageLoad()
+    // Fetch initial stats immediately
+    fetchStats()
 
     // Poll live counts in background every 15 seconds to keep numbers dynamic across sessions
-    const interval = setInterval(refreshStatsInBackground, 15000)
+    const interval = setInterval(fetchStats, 15000)
 
     return () => {
       isMounted = false

@@ -8,8 +8,8 @@ export function VisitorTracker() {
   const lastTrackedPath = useRef<string | null>(null)
 
   useEffect(() => {
-    // Prevent duplicate logging for the same path in the same session render
-    if (!pathname || lastTrackedPath.current === pathname) return
+    // Prevent tracking for admin routes, API routes, or duplicate logging
+    if (!pathname || pathname.startsWith('/admin') || pathname.startsWith('/api') || lastTrackedPath.current === pathname) return
     lastTrackedPath.current = pathname
 
     async function recordVisit() {

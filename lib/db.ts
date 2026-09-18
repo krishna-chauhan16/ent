@@ -574,11 +574,19 @@ export async function recordVisitor(details?: {
   userAgent?: string
   path?: string
 }): Promise<{ total: number; todayCount: number; entry?: VisitorLog }> {
+  const pagePath = details?.path?.trim() || '/'
+  const lowerPath = pagePath.toLowerCase()
+
+  // Ignore /admin and /api visits - do NOT count or log them
+  if (lowerPath.includes('/admin') || lowerPath.startsWith('/api')) {
+    const stats = await getStats()
+    return { total: stats.visitorsTotal, todayCount: stats.visitorsToday }
+  }
+
   const today = new Date().toISOString().split('T')[0]
   const nowIso = new Date().toISOString()
   const ip = details?.ip?.trim() || '127.0.0.1'
   const userAgent = details?.userAgent?.trim() || ''
-  const pagePath = details?.path?.trim() || '/'
 
   const logEntry: VisitorLog = {
     id: 1,
@@ -711,7 +719,12 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      const res = await pool.query('SELECT * FROM public.visitor_logs ORDER BY visited_at DESC LIMIT $1', [limit])
+      // Cleanup any legacy admin or api logs
+      await pool.query("DELETE FROM public.visitor_logs WHERE path ILIKE '%/admin%' OR path ILIKE '%/api%'").catch(() => {})
+      const res = await pool.query(
+        "SELECT * FROM public.visitor_logs WHERE path NOT ILIKE '%/admin%' AND path NOT ILIKE '%/api%' ORDER BY visited_at DESC LIMIT $1",
+        [limit],
+      )
       return res.rows.map((r) => ({
         id: Number(r.id),
         ip: r.ip,
@@ -727,9 +740,13 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
 
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
+      // Cleanup legacy admin logs from Supabase
+      await supabaseAdmin.from('visitor_logs').delete().or('path.ilike.%/admin%,path.ilike.%/api%').catch(() => {})
       const { data } = await supabaseAdmin
         .from('visitor_logs')
         .select('*')
+        .not('path', 'ilike', '%/admin%')
+        .not('path', 'ilike', '%/api%')
         .order('visited_at', { ascending: false })
         .limit(limit)
 
@@ -749,6 +766,29 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
   }
 
   return []
+}
+
+export async function deleteVisitorLog(id: number): Promise<boolean> {
+  const pool = getPostgresPool()
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM public.visitor_logs WHERE id = $1', [id])
+      return true
+    } catch (err) {
+      console.error('PostgreSQL deleteVisitorLog error:', err)
+    }
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    try {
+      await supabaseAdmin.from('visitor_logs').delete().eq('id', id)
+      return true
+    } catch (err) {
+      console.error('Supabase deleteVisitorLog error:', err)
+    }
+  }
+
+  return false
 }
 
 export async function getStats() {

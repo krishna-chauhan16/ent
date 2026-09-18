@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getStats, recordVisitor, getRecentVisitorLogs } from '@/lib/db'
+import { getStats, recordVisitor, getRecentVisitorLogs, deleteVisitorLog } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -92,6 +92,20 @@ export async function POST(req: NextRequest) {
       path = referer || '/'
     }
 
+    // Never log admin or internal API routes
+    const lowerPath = path.toLowerCase()
+    if (lowerPath.includes('/admin') || lowerPath.startsWith('/api')) {
+      const stats = await getStats()
+      return NextResponse.json(
+        { success: true, ignored: true, stats },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+        },
+      )
+    }
+
     const visitor = await recordVisitor({ ip, userAgent, path })
     const stats = await getStats()
 
@@ -106,5 +120,25 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('API /api/visitors POST error:', error)
     return NextResponse.json({ success: false, error: 'Failed to record visitor' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    if (id) {
+      const logId = parseInt(id, 10)
+      if (!isNaN(logId)) {
+        await deleteVisitorLog(logId)
+        return NextResponse.json({ success: true, message: 'Visitor log deleted' })
+      }
+    }
+
+    return NextResponse.json({ success: false, error: 'Invalid ID' }, { status: 400 })
+  } catch (error) {
+    console.error('API /api/visitors DELETE error:', error)
+    return NextResponse.json({ success: false, error: 'Failed to delete log' }, { status: 500 })
   }
 }
