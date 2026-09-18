@@ -1,9 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { MapPin, Mail, Phone, Send, Stethoscope, ShieldCheck, HeartPulse, Lock } from 'lucide-react'
+import { MapPin, Mail, Phone, Stethoscope } from 'lucide-react'
 import { site, navLinks } from '@/lib/site'
-import { VisitorCounter } from './visitor-counter'
 
 const surgicalHighlights = [
   'Septoplasty (1200+ Cases)',
@@ -15,17 +13,6 @@ const surgicalHighlights = [
 ]
 
 export function Footer() {
-  const [email, setEmail] = useState('')
-  const [subscribed, setSubscribed] = useState(false)
-
-  function handleSubscribe(e: React.FormEvent) {
-    e.preventDefault()
-    if (email.trim()) {
-      setSubscribed(true)
-      setEmail('')
-    }
-  }
-
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground dark:bg-secondary dark:text-foreground">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -135,21 +122,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-primary-foreground/15 pt-8 text-xs text-primary-foreground/60 dark:border-border dark:text-muted-foreground sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-center gap-4 border-t border-primary-foreground/15 pt-8 text-xs text-center text-primary-foreground/60 dark:border-border dark:text-muted-foreground">
           <p>
             &copy; {new Date().getFullYear()} {site.doctor.name}, MS (ENT) &middot; {site.hospital.name}. All rights reserved.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-            <VisitorCounter />
-            <a
-              href="/admin"
-              className="inline-flex items-center gap-1.5 text-primary-foreground/75 hover:text-accent transition-colors dark:text-muted-foreground dark:hover:text-accent"
-              title="Doctor / Staff Admin Portal"
-            >
-              <Lock className="size-3" />
-              <span>Admin Portal</span>
-            </a>
-          </div>
         </div>
       </div>
     </footer>
