@@ -619,28 +619,16 @@ export async function recordVisitor(details?: {
         console.error('PostgreSQL visitor_logs insert error:', logErr)
       }
 
-      const res = await pool.query('SELECT * FROM public.visitors WHERE id = 1 LIMIT 1')
-      let total = 1
-      let todayCount = 1
+      const countRes = await pool.query(`
+        SELECT 
+          COUNT(*) as total_count,
+          COUNT(CASE WHEN (DATE(visited_at) = CURRENT_DATE OR DATE(created_at) = CURRENT_DATE) THEN 1 END) as today_count
+        FROM public.visitor_logs
+        WHERE path NOT ILIKE '%/admin%' AND path NOT ILIKE '%/api%'
+      `)
 
-      if (res.rows.length > 0) {
-        const row = res.rows[0]
-        todayCount = (row.today_count || 0) + 1
-        if (row.last_date && new Date(row.last_date).toISOString().split('T')[0] !== today) {
-          todayCount = 1
-        }
-        total = (row.total || 0) + 1
-
-        await pool.query(
-          'UPDATE public.visitors SET total = $1, today_count = $2, last_date = $3, updated_at = NOW() WHERE id = 1',
-          [total, todayCount, today],
-        )
-      } else {
-        await pool.query(
-          'INSERT INTO public.visitors (id, total, today_count, last_date) VALUES (1, $1, $2, $3)',
-          [total, todayCount, today],
-        )
-      }
+      const total = parseInt(countRes.rows[0]?.total_count || '1', 10)
+      const todayCount = parseInt(countRes.rows[0]?.today_count || '1', 10)
 
       return { total, todayCount, entry: logEntry }
     } catch (err) {
@@ -651,7 +639,7 @@ export async function recordVisitor(details?: {
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      const { data: insertedLog } = await supabaseAdmin
+      const { data: insertedLog, error: insertErr } = await supabaseAdmin
         .from('visitor_logs')
         .insert([
           {
@@ -666,52 +654,35 @@ export async function recordVisitor(details?: {
 
       if (insertedLog?.id) {
         logEntry.id = Number(insertedLog.id)
+      } else if (insertErr) {
+        console.error('Supabase visitor_logs insert error:', insertErr)
       }
 
-      const { data, error } = await supabaseAdmin
-        .from('visitors')
-        .select('*')
-        .eq('id', 1)
-        .single()
+      const todayStart = `${today}T00:00:00.000Z`
+      const [totalCountRes, todayCountRes] = await Promise.all([
+        supabaseAdmin
+          .from('visitor_logs')
+          .select('*', { count: 'exact', head: true })
+          .not('path', 'ilike', '%/admin%')
+          .not('path', 'ilike', '%/api%'),
+        supabaseAdmin
+          .from('visitor_logs')
+          .select('*', { count: 'exact', head: true })
+          .not('path', 'ilike', '%/admin%')
+          .not('path', 'ilike', '%/api%')
+          .gte('visited_at', todayStart),
+      ])
 
-      let newToday = 1
-      let newTotal = 1
+      const total = totalCountRes.count ?? 1
+      const todayCount = todayCountRes.count ?? 1
 
-      if (!error && data) {
-        newToday = (data.today_count || 0) + 1
-        if (data.last_date !== today) {
-          newToday = 1
-        }
-        newTotal = (data.total || 0) + 1
-
-        await supabaseAdmin
-          .from('visitors')
-          .update({
-            total: newTotal,
-            today_count: newToday,
-            last_date: today,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', 1)
-      } else {
-        await supabaseAdmin.from('visitors').insert([
-          {
-            id: 1,
-            total: 1,
-            today_count: 1,
-            last_date: today,
-            updated_at: new Date().toISOString(),
-          },
-        ])
-      }
-
-      return { total: newTotal, todayCount: newToday, entry: logEntry }
+      return { total, todayCount, entry: logEntry }
     } catch (err) {
       console.error('Supabase visitor record error:', err)
     }
   }
 
-  return { total: 0, todayCount: 0, entry: logEntry }
+  return { total: 1, todayCount: 1, entry: logEntry }
 }
 
 export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
@@ -719,8 +690,6 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      // Cleanup any legacy admin or api logs
-      await pool.query("DELETE FROM public.visitor_logs WHERE path ILIKE '%/admin%' OR path ILIKE '%/api%'").catch(() => {})
       const res = await pool.query(
         "SELECT * FROM public.visitor_logs WHERE path NOT ILIKE '%/admin%' AND path NOT ILIKE '%/api%' ORDER BY visited_at DESC LIMIT $1",
         [limit],
@@ -740,9 +709,7 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
 
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      // Cleanup legacy admin logs from Supabase
-      await supabaseAdmin.from('visitor_logs').delete().or('path.ilike.%/admin%,path.ilike.%/api%').catch(() => {})
-      const { data } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from('visitor_logs')
         .select('*')
         .not('path', 'ilike', '%/admin%')
@@ -750,15 +717,18 @@ export async function getRecentVisitorLogs(limit = 50): Promise<VisitorLog[]> {
         .order('visited_at', { ascending: false })
         .limit(limit)
 
-      if (data) {
+      if (data && !error) {
         return data.map((r: any) => ({
           id: Number(r.id),
           ip: r.ip,
           userAgent: r.user_agent || '',
           path: r.path || '/',
-          visitedAt: r.visited_at,
-          date: r.visited_at?.split('T')[0] || '',
+          visitedAt: r.visited_at ? new Date(r.visited_at).toISOString() : new Date().toISOString(),
+          date: r.visited_at ? new Date(r.visited_at).toISOString().split('T')[0] : '',
         }))
+      }
+      if (error) {
+        console.error('Supabase getRecentVisitorLogs error:', error)
       }
     } catch (err) {
       console.error('Supabase getRecentVisitorLogs error:', err)
@@ -781,8 +751,8 @@ export async function deleteVisitorLog(id: number): Promise<boolean> {
 
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      await supabaseAdmin.from('visitor_logs').delete().eq('id', id)
-      return true
+      const { error } = await supabaseAdmin.from('visitor_logs').delete().eq('id', id)
+      return !error
     } catch (err) {
       console.error('Supabase deleteVisitorLog error:', err)
     }
@@ -793,27 +763,30 @@ export async function deleteVisitorLog(id: number): Promise<boolean> {
 
 export async function getStats() {
   const today = new Date().toISOString().split('T')[0]
+  const todayStart = `${today}T00:00:00.000Z`
   const pool = getPostgresPool()
 
   // 1. Direct PostgreSQL (pgAdmin / localhost)
   if (pool) {
     try {
       await ensurePostgresTables(pool)
-      const [visitorRes, aptsRes, centersRes] = await Promise.all([
-        pool.query('SELECT * FROM public.visitors WHERE id = 1 LIMIT 1'),
+      const [countsRes, aptsRes, centersRes] = await Promise.all([
+        pool.query(`
+          SELECT 
+            COUNT(*) as total_count,
+            COUNT(CASE WHEN (DATE(visited_at) = CURRENT_DATE OR DATE(created_at) = CURRENT_DATE) THEN 1 END) as today_count
+          FROM public.visitor_logs
+          WHERE path NOT ILIKE '%/admin%' AND path NOT ILIKE '%/api%'
+        `),
         pool.query('SELECT * FROM public.appointments'),
         pool.query('SELECT COUNT(*) as count FROM public.hospital_centers WHERE is_active = TRUE'),
       ])
 
-      const visitorRow = visitorRes.rows[0]
+      const countRow = countsRes.rows[0]
+      const visitorsTotal = parseInt(countRow?.total_count || '0', 10)
+      const visitorsToday = parseInt(countRow?.today_count || '0', 10)
+
       const apts = aptsRes.rows
-
-      const visitorsTotal = visitorRow?.total || 0
-      const visitorLastDate = visitorRow?.last_date
-        ? new Date(visitorRow.last_date).toISOString().split('T')[0]
-        : ''
-      const visitorsToday = visitorLastDate === today ? visitorRow?.today_count || 0 : 0
-
       const totalAppointments = apts.length
       const pendingAppointments = apts.filter((a) => a.status === 'pending').length
       const confirmedAppointments = apts.filter((a) => a.status === 'confirmed').length
@@ -842,19 +815,27 @@ export async function getStats() {
   // 2. Supabase SDK
   if (isSupabaseConfigured && supabaseAdmin) {
     try {
-      const [visitorsRes, aptsRes, centersRes] = await Promise.all([
-        supabaseAdmin.from('visitors').select('*').eq('id', 1).single(),
+      const [totalCountRes, todayCountRes, aptsRes, centersRes] = await Promise.all([
+        supabaseAdmin
+          .from('visitor_logs')
+          .select('*', { count: 'exact', head: true })
+          .not('path', 'ilike', '%/admin%')
+          .not('path', 'ilike', '%/api%'),
+        supabaseAdmin
+          .from('visitor_logs')
+          .select('*', { count: 'exact', head: true })
+          .not('path', 'ilike', '%/admin%')
+          .not('path', 'ilike', '%/api%')
+          .gte('visited_at', todayStart),
         supabaseAdmin.from('appointments').select('*'),
         supabaseAdmin.from('hospital_centers').select('*'),
       ])
 
-      const visitorData = visitorsRes.data
+      const visitorsTotal = totalCountRes.count ?? 0
+      const visitorsToday = todayCountRes.count ?? 0
+
       const apts = (aptsRes.data || []) as any[]
       const centers = (centersRes.data || []) as any[]
-
-      const visitorsTotal = visitorData?.total || 0
-      const visitorsToday =
-        visitorData?.last_date === today ? visitorData?.today_count || 0 : 0
 
       const totalAppointments = apts.length
       const pendingAppointments = apts.filter((a) => a.status === 'pending').length

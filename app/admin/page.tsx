@@ -241,7 +241,6 @@ export default function AdminPage() {
   const [rescheduleTime, setRescheduleTime] = useState('06:00 PM - 07:30 PM (Evening OPD)')
   const [rescheduleLocation, setRescheduleLocation] = useState('')
   const [rescheduleReason, setRescheduleReason] = useState('Doctor OT Schedule / Alternate Available Slot')
-  const [rescheduleLang, setRescheduleLang] = useState<'gujarati' | 'english'>('gujarati')
   const [isRescheduling, setIsRescheduling] = useState(false)
 
   useEffect(() => {
@@ -294,8 +293,13 @@ export default function AdminPage() {
       if (concernsData.success) {
         setConcerns(concernsData.concerns)
       }
-      if (visitorsData.success && visitorsData.logs) {
-        setVisitorLogs(visitorsData.logs)
+      if (visitorsData.success) {
+        if (visitorsData.logs) {
+          setVisitorLogs(visitorsData.logs)
+        }
+        if (visitorsData.stats) {
+          setStats((prev) => ({ ...prev, ...visitorsData.stats }))
+        }
       }
 
       // Fetch Staff Users if Super Admin
@@ -907,40 +911,22 @@ Dr. Vaidik Chauhan & ENT Care Team`
     const dt = rescheduleDate
     const tm = rescheduleTime
 
-    if (rescheduleLang === 'gujarati') {
-      return `🏥 *ડૉ. વૈદિક ચૌહાણ, MS (ENT) - એપોઇન્ટમેન્ટ અપડેટ*
-
-નમસ્તે *${pName}* જી,
-
-ડૉક્ટરના સર્જિકલ શિડ્યુઅલને કારણે / તમે પસંદ કરેલી તારીખ ઉપલબ્ધ ન હોવાથી, તમારી ENT કન્સલ્ટેશન એપોઇન્ટમેન્ટ નીચે મુજબ કન્ફર્મ કરવામાં આવી છે:
-
-📅 *નવી તારીખ*: ${dt}
-⏰ *સમય સ્લોટ*: ${tm}
-🏥 *હોસ્પિટલ*: ${loc}
-📍 *સરનામું*: ${loc.includes('Atulya') ? '૨જો માળ, એલિટ મેગ્નમ, ભુયંગદેવ ક્રોસ રોડ, સોલા રોડ, ઘાટલોડિયા, અમદાવાદ' : 'અમદાવાદ'}
-🩺 *ડૉક્ટર*: Dr. Vaidik Chauhan, MS (ENT) - Consultant ENT Surgeon
-
-👉 *નોંધ*: કૃપા કરીને આપેલા સમય કરતાં ૧૦ મિનિટ વહેલા પહોંચવા વિનંતી.
-📞 કોઈ પ્રશ્ન હોય તો સંપર્ક કરો: +91 9601074848
-
-સ્વસ્થ રહો, આભાર! 🙏`
-    } else {
-      return `🏥 *Dr. Vaidik Chauhan, MS (ENT) - Appointment Rescheduled*
+    return `🏥 *Dr. Vaidik Chauhan, MS (ENT) - Appointment Rescheduled*
 
 Dear *${pName}*,
 
-Due to OT schedule / date availability, your ENT consultation appointment has been rescheduled and confirmed as follows:
+Due to OT schedule / slot availability, your ENT consultation appointment has been rescheduled and confirmed as follows:
 
 📅 *New Date*: ${dt}
 ⏰ *Time Slot*: ${tm}
 🏥 *Hospital*: ${loc}
+📍 *Address*: ${loc.includes('Atulya') ? '2nd Floor, Elite Magnum, Bhuyangdev Cross Rd, Sola Rd, Ghatlodiya, Ahmedabad' : 'Ahmedabad'}
 🩺 *Doctor*: Dr. Vaidik Chauhan, MS (ENT) - Consultant ENT Surgeon
 
-👉 *Please note*: Kindly arrive 10 minutes prior to your slot.
-📞 Clinic Helpline: +91 9601074848
+👉 *Please note*: Kindly arrive 10 minutes prior to your appointment time.
+📞 Clinic Helpline / Queries: +91 9601074848
 
 Thank you!`
-    }
   }
 
   // Save Reschedule
@@ -2798,31 +2784,6 @@ For any assistance: +91 9601074848.`
                   placeholder="e.g. Doctor in emergency OT / Date not available"
                   className="h-10 w-full rounded-xl border border-input bg-background px-3 text-xs text-foreground outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-ring"
                 />
-              </div>
-
-              {/* Language Switch */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="font-bold text-foreground">WhatsApp Message Language:</span>
-                <div className="flex items-center gap-2 bg-secondary p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setRescheduleLang('gujarati')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                      rescheduleLang === 'gujarati' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                    }`}
-                  >
-                    ગુજરાતી (Gujarati)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRescheduleLang('english')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                      rescheduleLang === 'english' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                    }`}
-                  >
-                    English
-                  </button>
-                </div>
               </div>
 
               {/* Live WhatsApp Preview Card */}
